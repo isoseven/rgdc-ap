@@ -9,19 +9,19 @@
 2. ✅ **Create Scene Switcher Utility**
    - ✅ Create a `SceneSwitcher` class to handle scene transitions
    - ✅ Implement methods for loading and switching between scenes
-   - 🔰 Add support for passing data between scenes
+   - ✅ Add support for passing data between scenes
 
 3. ✅ **Create Modern Controller Structure**
    - ✅ Create a base `Controller` abstract class
    - ✅ Create specific controllers for each scene (MainController, ConfigController, etc.)
-   - ✖️ Move functionality from `OldControl.java` to the new controllers
+   - ✅ Move functionality from `OldControl.java` to the new controllers
 
 ## 🔰 UI Implementation
 
-1. 🔰 **Update Main Application to Use Recent FXML Files**
+1. ✅ **Update Main Application to Use Recent FXML Files**
    - ✅ Modify `start()` method to load from `recent/sceneMain.fxml` instead of `old/sceneMain.fxml`
    - ✅ Adjust window size to match the new UI (1400x880)
-   - ⚠️ Update application title
+   - ✅ Update application title
 
 2. ✅ **Implement Navigation Between Scenes**
    - ✅ Connect Menu and Config buttons to scene switching functionality
