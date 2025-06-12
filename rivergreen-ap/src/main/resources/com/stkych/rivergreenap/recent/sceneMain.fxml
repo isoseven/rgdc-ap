@@ -14,13 +14,13 @@
       <Button fx:id="configButton" layoutX="43.0" layoutY="27.0" mnemonicParsing="false" onAction="#handleConfigButtonAction" prefWidth="99.0" text="Config" />
       <TableView fx:id="leftTableView" layoutX="43.0" layoutY="73.0" prefHeight="736.0" prefWidth="624.0">
         <columns>
-          <TableColumn prefWidth="60.0" text="Priority" />
-          <TableColumn prefWidth="35.0" text="Tth" />
-            <TableColumn prefWidth="40.0" text="Surf." />
-            <TableColumn prefWidth="73.0" text="Code" />
-            <TableColumn prefWidth="95.0" text="Diagnosis" />
-            <TableColumn prefWidth="256.0" text="Description" />
-            <TableColumn prefWidth="64.0" text="Fee" />
+          <TableColumn fx:id="priorityColumn" prefWidth="60.0" text="Priority" />
+          <TableColumn fx:id="toothColumn" prefWidth="35.0" text="Tth" />
+            <TableColumn fx:id="surfaceColumn" prefWidth="40.0" text="Surf." />
+            <TableColumn fx:id="codeColumn" prefWidth="73.0" text="Code" />
+            <TableColumn fx:id="diagnosisColumn" prefWidth="95.0" text="Diagnosis" />
+            <TableColumn fx:id="descriptionColumn" prefWidth="256.0" text="Description" />
+            <TableColumn fx:id="feeColumn" prefWidth="64.0" text="Fee" />
         </columns>
       </TableView>
       <GridPane layoutX="550.0" layoutY="232.0">

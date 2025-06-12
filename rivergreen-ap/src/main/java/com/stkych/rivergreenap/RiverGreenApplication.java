@@ -6,10 +6,12 @@ import javafx.stage.Stage;
 import java.io.IOException;
 
 /**
- * Main application class for the RiverGreen Dental Application.
+ * Main application class for the application.
  * Initializes the application and loads the main scene.
  */
 public class RiverGreenApplication extends Application {
+    // FALLBACK patient number if none is provided
+    private static int patientNumber = -1; // Default value
 
     /**
      * Starts the application.
@@ -20,19 +22,37 @@ public class RiverGreenApplication extends Application {
      */
     @Override
     public void start(Stage stage) throws IOException {
-        // Initialize the SceneSwitcher with the primary stage
-        SceneSwitcher.initialize(stage);
+        if (patientNumber != -1) {
+            // Initialize the SceneSwitcher with the primary stage
+            SceneSwitcher.initialize(stage);
+            // Store the patient number in the data cache for the controller to use
+            SceneSwitcher.putData("patientNumber", patientNumber);
+            // Switch to the main scene
+            SceneSwitcher.switchScene("sceneMain", "RiverGreen Dental Application");
+        } else {
+            // Opens the error window instead of the application.
+            SceneSwitcher.initialize(stage);
+            SceneSwitcher.switchScene("sceneError", "Invalid Patient Number", 300, 150);
+        }
 
-        // Switch to the main scene
-        SceneSwitcher.switchScene("sceneMain", "RiverGreen Dental Application");
     }
 
     /**
      * Main method to launch the application.
+     * Accepts an optional patient number as the first argument.
      * 
-     * @param args Command line arguments
+     * @param args Command line arguments. If provided, the first argument should be the patient number.
      */
     public static void main(String[] args) {
+        // Check if a patient number was provided as a command line argument
+        if (args.length > 0) {
+            try {
+                patientNumber = Integer.parseInt(args[0]);
+            } catch (NumberFormatException e) {
+                System.err.println("Invalid patient number format. Using default: " + patientNumber);
+            }
+        }
+
         launch(args);
     }
 }

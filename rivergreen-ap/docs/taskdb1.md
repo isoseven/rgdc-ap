@@ -1,0 +1,3 @@
+- get the patnum (patient number) from arguments of the function
+- find active treatment plan in treatplan table (PatNum must be equal and TPStatus must be 1)
+- find 

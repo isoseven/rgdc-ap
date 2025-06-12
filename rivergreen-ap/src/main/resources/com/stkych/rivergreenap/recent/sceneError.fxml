@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Hyperlink?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.text.Font?>
+
+
+<AnchorPane prefHeight="150.0" prefWidth="300.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.stkych.rivergreenap.controller.ErrorController">
+   <children>
+      <Label layoutX="35.0" layoutY="32.0" text="Error: PatNum argument missing">
+         <font>
+            <Font size="15.0" />
+         </font>
+      </Label>
+      <Hyperlink layoutX="32.0" layoutY="56.0" onAction="#handleHyperlink" text="https://github.com/isoseven/rgdc-ap" />
+      <Button layoutX="195.0" layoutY="103.0" mnemonicParsing="false" onAction="#handleCloseButtonAction" prefHeight="25.0" prefWidth="82.0" text="Exit" />
+   </children>
+</AnchorPane>
