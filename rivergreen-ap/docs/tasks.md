@@ -73,3 +73,5 @@
    - ❌ Configure build process for creating executable JAR
    - ❌ Create installer for Windows
    - ❌ Add auto-update functionality
+
+## **Revamp Listview**
