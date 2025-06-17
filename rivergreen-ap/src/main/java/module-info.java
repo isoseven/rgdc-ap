@@ -7,6 +7,7 @@ module com.stkych.rivergreenap {
     requires org.kordamp.bootstrapfx.core;
     requires java.sql;
     requires java.desktop;
+    requires org.jetbrains.annotations;
 
     opens com.stkych.rivergreenap to javafx.fxml;
     opens com.stkych.rivergreenap.model to javafx.base;

@@ -1,8 +1,5 @@
-- RiverGreenApplcation
 - RiverGreenDB
 - Controller
 - ControllerMain
 - ConfigController
-- ConfigEditController
 - ConfigNewController
-- SceneSwitcher

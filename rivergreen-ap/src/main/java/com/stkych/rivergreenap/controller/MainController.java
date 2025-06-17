@@ -6,15 +6,27 @@ import com.stkych.rivergreenap.SceneSwitcher;
 import com.stkych.rivergreenap.model.TreatmentPlanProcedure;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
+import javafx.scene.control.ListView;
 import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.input.ClipboardContent;
+import javafx.scene.input.DataFormat;
+import javafx.scene.input.Dragboard;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.input.TransferMode;
 
 import java.io.IOException;
 import java.net.URL;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.ResourceBundle;
 
 /**
@@ -39,7 +51,13 @@ public class MainController extends Controller {
     private TableView<TreatmentPlanProcedure> leftTableView;
 
     @FXML
-    private TableView<?> rightTableView;
+    private TableView<TreatmentPlanProcedure> rightTableView;
+
+    // List to track the order of procedures in the right table view
+    private ObservableList<TreatmentPlanProcedure> selectedProcedures = FXCollections.observableArrayList();
+
+    // Custom DataFormat for drag and drop operations
+    private static final DataFormat PROCEDURE_FORMAT = new DataFormat("application/x-treatmentplanprocedure");
 
     @FXML
     private TableColumn<TreatmentPlanProcedure, String> priorityColumn;
@@ -62,72 +80,208 @@ public class MainController extends Controller {
     @FXML
     private TableColumn<TreatmentPlanProcedure, Double> feeColumn;
 
+    // Right table view columns
+    @FXML
+    private TableColumn<TreatmentPlanProcedure, String> rightPriorityColumn;
+
+    @FXML
+    private TableColumn<TreatmentPlanProcedure, String> rightToothColumn;
+
+    @FXML
+    private TableColumn<TreatmentPlanProcedure, String> rightSurfaceColumn;
+
+    @FXML
+    private TableColumn<TreatmentPlanProcedure, String> rightCodeColumn;
+
+    @FXML
+    private TableColumn<TreatmentPlanProcedure, String> rightDiagnosisColumn;
+
+    @FXML
+    private TableColumn<TreatmentPlanProcedure, String> rightDescriptionColumn;
+
+    @FXML
+    private TableColumn<TreatmentPlanProcedure, Double> rightFeeColumn;
+
+    @FXML
+    private ListView<String> priorityListView;
+
+    private static final String DROP_TARGET_STYLE = "-fx-border-color: #007ad7; -fx-border-width: 0 0 2 0; -fx-padding: 0;";
+
     /**
-     * Initializes the controller.
-     * This method is called automatically after the FXML file has been loaded.
-     * 
-     * @param location The location used to resolve relative paths for the root object
-     * @param resources The resources used to localize the root object
+     * Initializes the controller after the root element has been completely processed.
+     * Sets up the table columns, retrieves patient data, loads procedures if available,
+     * and adds testing data if necessary.
+     *
+     * @param location The URL location used to resolve relative paths for the root object, or null if not known.
+     * @param resources The ResourceBundle used to localize the root object, or null if not applicable.
      */
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         // Set up the table columns
         setupTableColumns();
 
+        // Initialize the right table view with the selected procedures list
+        rightTableView.setItems(selectedProcedures);
+
+        // Set up drag-and-drop for the right table view (for reordering only)
+        setupDragAndDrop();
+
+        setupPriorityListView();
+
         try {
             // Get the patient number from the data cache
             Integer patientNumber = (Integer) SceneSwitcher.getData("patientNumber");
 
             if (patientNumber != null) {
-                System.out.println("Loading procedures for patient " + patientNumber);
-                // Load procedures for the patient using the new RiverGreenDB class
+                // Load procedures for the patient using the RiverGreenDB class
                 loadProceduresForPatient(patientNumber);
             } else {
-                System.out.println("No patient number found, adding dummy data for testing");
-                // Add dummy data if no patient number is found
-                addDummyDataForTesting();
-            }
+                System.out.println("No patient number found");
+                // Create an empty observable list and add dummy procedures
+                ObservableList<TreatmentPlanProcedure> procedures = FXCollections.observableArrayList();
+                // Set the items in the left table view
+                leftTableView.setItems(procedures);
+                // Force the table to refresh
+                leftTableView.refresh();
 
-            // If no procedures were loaded, add some dummy data for testing
-            if (leftTableView.getItems() == null || leftTableView.getItems().isEmpty()) {
-                System.out.println("No procedures loaded, adding dummy data for testing");
-                addDummyDataForTesting();
+                // Copy all items from left table to right table
+                copyAllItemsToRightTable();
             }
         } catch (SQLException e) {
             handleError(e);
+            // If there's an error, still add dummy data so the UI is usable
+            System.out.println("Error loading procedures, adding dummy data for testing");
+            ObservableList<TreatmentPlanProcedure> procedures = FXCollections.observableArrayList();
+            leftTableView.setItems(procedures);
+            leftTableView.refresh();
+
+            // Copy all items from left table to right table
+            copyAllItemsToRightTable();
         }
     }
 
     /**
-     * Adds dummy data to the table view for testing purposes.
-     * This helps verify if the issue is with data retrieval or UI display.
+     * Sets up drag-and-drop functionality for the right table view.
+     * This allows users to reorder procedures in the right table view by dragging and dropping rows.
+     * Also highlights where the item will be placed.
+     * <p>
+     * Note: yeah... lets try not to touch this. that's a lot of functions.
      */
-    private void addDummyDataForTesting() {
-        ObservableList<TreatmentPlanProcedure> dummyProcedures = FXCollections.observableArrayList();
-
-        // Add a few dummy procedures
-        dummyProcedures.add(new TreatmentPlanProcedure("High", "1", "MOD", "D2150", "K02.9", "Amalgam - Two Surfaces", 150.0));
-        dummyProcedures.add(new TreatmentPlanProcedure("Medium", "2", "O", "D2140", "K02.9", "Amalgam - One Surface", 100.0));
-        dummyProcedures.add(new TreatmentPlanProcedure("Low", "30", "B", "D2330", "K02.9", "Resin - One Surface, Anterior", 120.0));
-
-        System.out.println("Added " + dummyProcedures.size() + " dummy procedures for testing");
-
-        // Set the dummy data in the table view
-        leftTableView.setItems(dummyProcedures);
-        System.out.println("Set dummy items in the table view");
-
-        // Force the table to refresh
-        leftTableView.refresh();
-        System.out.println("Refreshed table view with dummy data");
+    private void setupDragAndDrop() {
+        rightTableView.setRowFactory(tv -> {
+            TableRow<TreatmentPlanProcedure> row = new TableRow<>();
+            setupDragDetection(row);
+            setupDragOver(row);
+            setupDragExit(row);
+            setupDrop(row);
+            setupDragDone(row);
+            return row;
+        });
     }
 
     /**
-     * Loads procedures for a patient using the RiverGreenDB class.
-     * This method retrieves all procedures from the patient's treatment plans
-     * using the SQL query specified in the requirements.
+     * Configures drag detection for the specified table row.
+     * When a drag is detected on a non-empty row, initiates a drag-and-drop operation.
      *
-     * @param patientNumber The patient number
-     * @throws SQLException If a database error occurs
+     * @param row The TableRow of type TreatmentPlanProcedure for which drag detection is to be set up
+     */
+    private void setupDragDetection(TableRow<TreatmentPlanProcedure> row) {
+        row.setOnDragDetected(event -> {
+            if (!row.isEmpty()) {
+                Integer index = row.getIndex();
+                Dragboard db = row.startDragAndDrop(TransferMode.MOVE);
+                db.setDragView(row.snapshot(null, null));
+                ClipboardContent cc = new ClipboardContent();
+                cc.put(PROCEDURE_FORMAT, index);
+                db.setContent(cc);
+                event.consume();
+            }
+        });
+    }
+
+    /**
+     * Configures drag-over behavior for a given table row to highlight it as a potential drop target.
+     * This enables the user to see where dragged items can be dropped during a drag-and-drop operation.
+     *
+     * @param row The TableRow of type TreatmentPlanProcedure for which drag-over behavior is to be set up
+     */
+    private void setupDragOver(TableRow<TreatmentPlanProcedure> row) {
+        row.setOnDragOver(event -> {
+            Dragboard db = event.getDragboard();
+            if (db.hasContent(PROCEDURE_FORMAT)) {
+                if (row.getIndex() != ((Integer) db.getContent(PROCEDURE_FORMAT)).intValue()) {
+                    clearRowStyles();
+                    row.setStyle(DROP_TARGET_STYLE);
+                    event.acceptTransferModes(TransferMode.MOVE);
+                    event.consume();
+                }
+            }
+        });
+    }
+
+    private void setupDragExit(TableRow<TreatmentPlanProcedure> row) {
+        row.setOnDragExited(event -> row.setStyle(null));
+    }
+
+    private void setupDrop(TableRow<TreatmentPlanProcedure> row) {
+        row.setOnDragDropped(event -> {
+            Dragboard db = event.getDragboard();
+            if (db.hasContent(PROCEDURE_FORMAT)) {
+                int draggedIndex = (Integer) db.getContent(PROCEDURE_FORMAT);
+                TreatmentPlanProcedure draggedProcedure = selectedProcedures.remove(draggedIndex);
+
+                int dropIndex = row.isEmpty() ? selectedProcedures.size() : row.getIndex();
+                selectedProcedures.add(dropIndex, draggedProcedure);
+
+                row.setStyle(null);
+                event.setDropCompleted(true);
+                rightTableView.getSelectionModel().select(dropIndex);
+                event.consume();
+            }
+        });
+    }
+
+    private void setupDragDone(TableRow<TreatmentPlanProcedure> row) {
+        row.setOnDragDone(event -> clearRowStyles());
+    }
+
+    private void clearRowStyles() {
+        rightTableView.lookupAll(".table-row-cell").forEach(node -> node.setStyle(null));
+    }
+
+    private void sortPriorities(ObservableList<String> priorities) {
+        // Create a new list to append to
+        ObservableList<String> sortedPriorities = FXCollections.observableArrayList();
+        // Start by appending "Next"
+        sortedPriorities.add("Next");
+        // Add all numbered priorities
+        for (int i = 1; i <= 10; i++) {
+            sortedPriorities.add(String.valueOf(i));
+            sortedPriorities.add(i + "A");
+            sortedPriorities.add(i + "B");
+            sortedPriorities.add(i + "C");
+            sortedPriorities.add(i + " Wait");
+            sortedPriorities.add(i + " Decline");
+        }
+        // Put all other priorities in
+        for (String priority : priorities) {
+            if (!sortedPriorities.contains(priority)) {
+                sortedPriorities.add(priority);
+            }
+        }
+
+        // Update the original list with sorted priorities
+        priorities.setAll(sortedPriorities);
+    }
+
+    /**
+     * Loads and displays procedures for a specified patient in the table view.
+     * This method retrieves the procedures from the database,
+     * populates leftTableView, and refreshes the TableView.
+     * It also copies all procedures to the right table view.
+     *
+     * @param patientNumber The unique identifier of the patient whose procedures are to be loaded
+     * @throws SQLException If a database error occurs during the data retrieval process
      */
     private void loadProceduresForPatient(int patientNumber) throws SQLException {
         System.out.println("Loading procedures for patient " + patientNumber + " using RiverGreenDB");
@@ -136,73 +290,69 @@ public class MainController extends Controller {
         ObservableList<TreatmentPlanProcedure> procedures = RiverGreenDB.getProceduresForPatientObservable(patientNumber);
         System.out.println("Retrieved " + procedures.size() + " procedures for patient " + patientNumber);
 
-        // Print the first few procedures for debugging
-        for (int i = 0; i < Math.min(3, procedures.size()); i++) {
-            TreatmentPlanProcedure procedure = procedures.get(i);
-            System.out.println("Added procedure to UI: Tooth=" + procedure.getToothNumber() + 
-                              ", Code=" + procedure.getProcedureCode() + 
-                              ", Desc=" + procedure.getDescription());
-        }
-
         // Set the items in the table view
         leftTableView.setItems(procedures);
-        System.out.println("Set " + procedures.size() + " items in the table view");
-
-        // Check if the table view is visible and has the correct column count
-        System.out.println("TableView visible: " + leftTableView.isVisible());
-        System.out.println("TableView column count: " + leftTableView.getColumns().size());
 
         // Force the table to refresh
         leftTableView.refresh();
+
+        // Copy all items from left table to right table
+        copyAllItemsToRightTable();
     }
 
     /**
-     * Shows treatment plans for the current patient in the table view.
-     * This is useful for viewing all plans for the current patient.
-     * 
-     * Note: This method is currently disabled as it depends on RiverGreenDBOld.
-     * Use loadProceduresForPatient instead.
+     * Copies all items from the left table view to the right table view.
+     * This is called during initialization to ensure all procedures are available in the right table.
      */
-    public void showPatientTreatmentPlans() {
-        System.out.println("showPatientTreatmentPlans is disabled. Use loadProceduresForPatient instead.");
+    private void copyAllItemsToRightTable() {
+        // Clear the right table view first
+        selectedProcedures.clear();
 
-        // Get the patient number from the data cache
-        Integer patientNumber = (Integer) SceneSwitcher.getData("patientNumber");
+        // Get all items from the left table view
+        ObservableList<TreatmentPlanProcedure> leftItems = leftTableView.getItems();
 
-        if (patientNumber != null) {
-            try {
-                // Load procedures for the patient using the new RiverGreenDB class
-                loadProceduresForPatient(patientNumber);
-            } catch (SQLException e) {
-                System.err.println("Error loading procedures for patient: " + e.getMessage());
-                e.printStackTrace();
-            }
-        } else {
-            System.out.println("No patient number found in data cache");
+        // Copy each item to the right table view
+        for (TreatmentPlanProcedure procedure : leftItems) {
+            // Create a copy of the procedure
+            TreatmentPlanProcedure copy = new TreatmentPlanProcedure(
+                    procedure.getPriority(),
+                    procedure.getToothNumber(),
+                    procedure.getSurface(),
+                    procedure.getProcedureCode(),
+                    procedure.getDiagnosis(),
+                    procedure.getDescription(),
+                    procedure.getFee(),
+                    procedure.getProcedureNumber()
+            );
+
+            // Add to the right table
+            selectedProcedures.add(copy);
         }
+
+        System.out.println("Copied " + selectedProcedures.size() + " procedures from left to right table");
     }
 
-    /**
-     * Converts a TPStatus code to a human-readable status text.
-     * 
-     * @param status The TPStatus code
-     * @return A human-readable status text
-     */
-    private String getStatusText(int status) {
-        switch (status) {
-            case 0: return "Inactive";
-            case 1: return "Active";
-            case 2: return "Completed";
-            case 3: return "Archived";
-            default: return "Unknown (" + status + ")";
-        }
-    }
 
     /**
-     * Sets up the table columns for the leftTableView.
+     * Configures the columns for the table view by setting up cell value factories
+     * and ensuring their visibility.
+     * <p>
+     * This method initializes the value factories for each column in the table, which
+     * maps property names to their corresponding columns.
+     * It also logs the setup status of each column to assist in debugging and ensures
+     * that all columns are visible.
+     * <p></p>
+     * These columns are configured:<p>
+     * - priorityColumn: Priority level of the entry.<p>
+     * - toothColumn: Tooth number.<p>
+     * - surfaceColumn: Surface involved.<p>
+     * - codeColumn: Procedure code.<p>
+     * - diagnosisColumn: Diagnosis information.<p>
+     * - descriptionColumn: Description of the procedure.<p>
+     * - feeColumn: Fee associated with the procedure.
      */
     private void setupTableColumns() {
-        // Set up the cell value factories for each column
+        // Set up the cell value factories for each column in the left table view
         priorityColumn.setCellValueFactory(new PropertyValueFactory<>("priority"));
         toothColumn.setCellValueFactory(new PropertyValueFactory<>("toothNumber"));
         surfaceColumn.setCellValueFactory(new PropertyValueFactory<>("surface"));
@@ -211,15 +361,24 @@ public class MainController extends Controller {
         descriptionColumn.setCellValueFactory(new PropertyValueFactory<>("description"));
         feeColumn.setCellValueFactory(new PropertyValueFactory<>("fee"));
 
-        // Log the column setup for debugging
-        System.out.println("Table columns setup complete");
-        System.out.println("Priority column: " + (priorityColumn != null ? "OK" : "NULL"));
-        System.out.println("Tooth column: " + (toothColumn != null ? "OK" : "NULL"));
-        System.out.println("Surface column: " + (surfaceColumn != null ? "OK" : "NULL"));
-        System.out.println("Code column: " + (codeColumn != null ? "OK" : "NULL"));
-        System.out.println("Diagnosis column: " + (diagnosisColumn != null ? "OK" : "NULL"));
-        System.out.println("Description column: " + (descriptionColumn != null ? "OK" : "NULL"));
-        System.out.println("Fee column: " + (feeColumn != null ? "OK" : "NULL"));
+        // Set up the cell value factories for each column in the right table view
+        rightPriorityColumn.setCellValueFactory(new PropertyValueFactory<>("priority"));
+        rightToothColumn.setCellValueFactory(new PropertyValueFactory<>("toothNumber"));
+        rightSurfaceColumn.setCellValueFactory(new PropertyValueFactory<>("surface"));
+        rightCodeColumn.setCellValueFactory(new PropertyValueFactory<>("procedureCode"));
+        rightDiagnosisColumn.setCellValueFactory(new PropertyValueFactory<>("diagnosis"));
+        rightDescriptionColumn.setCellValueFactory(new PropertyValueFactory<>("description"));
+        rightFeeColumn.setCellValueFactory(new PropertyValueFactory<>("fee"));
+
+//        // Log the column setup for debugging
+//        System.out.println("Table columns setup complete");
+//        System.out.println("Priority column: " + (priorityColumn != null ? "OK" : "NULL"));
+//        System.out.println("Tooth column: " + (toothColumn != null ? "OK" : "NULL"));
+//        System.out.println("Surface column: " + (surfaceColumn != null ? "OK" : "NULL"));
+//        System.out.println("Code column: " + (codeColumn != null ? "OK" : "NULL"));
+//        System.out.println("Diagnosis column: " + (diagnosisColumn != null ? "OK" : "NULL"));
+//        System.out.println("Description column: " + (descriptionColumn != null ? "OK" : "NULL"));
+//        System.out.println("Fee column: " + (feeColumn != null ? "OK" : "NULL"));
 
         // Make sure columns are visible and have appropriate widths
         priorityColumn.setVisible(true);
@@ -229,72 +388,23 @@ public class MainController extends Controller {
         diagnosisColumn.setVisible(true);
         descriptionColumn.setVisible(true);
         feeColumn.setVisible(true);
+
+        // Make sure right table columns are visible
+        rightPriorityColumn.setVisible(true);
+        rightToothColumn.setVisible(true);
+        rightSurfaceColumn.setVisible(true);
+        rightCodeColumn.setVisible(true);
+        rightDiagnosisColumn.setVisible(true);
+        rightDescriptionColumn.setVisible(true);
+        rightFeeColumn.setVisible(true);
     }
 
-    /**
-     * Loads the treatment plan for the specified patient.
-     * 
-     * Note: This method is currently disabled as it depends on RiverGreenDBOld.
-     * Use loadProceduresForPatient instead.
-     * 
-     * @param patientNumber The patient number
-     * @throws SQLException If a database error occurs
-     */
-    private void loadTreatmentPlan(int patientNumber) throws SQLException {
-        System.out.println("loadTreatmentPlan is disabled. Use loadProceduresForPatient instead.");
-        loadProceduresForPatient(patientNumber);
-    }
 
     /**
-     * Loads a treatment plan directly using its treatment plan number.
-     * This method is used to load a specific treatment plan regardless of the patient.
-     * 
-     * Note: This method is currently disabled as it depends on RiverGreenDBOld.
-     * Use loadProceduresForPatient instead.
-     * 
-     * @param treatPlanNum The treatment plan number
-     * @throws SQLException If a database error occurs
-     */
-    private void loadTreatmentPlanDirectly(int treatPlanNum) throws SQLException {
-        System.out.println("loadTreatmentPlanDirectly is disabled. Use loadProceduresForPatient instead.");
-
-        // Since we can't load by treatment plan number directly with the new implementation,
-        // we'll just add some dummy data for testing
-        addDummyDataForTesting();
-    }
-
-    /**
-     * Loads all procedures from treatment plan 22147.
-     * This method is specifically designed to retrieve all 18 procedures from treatment plan 22147,
-     * regardless of whether they are saved or not.
-     * 
-     * Note: This method is currently disabled as it depends on RiverGreenDBOld.
-     * Use loadProceduresForPatient instead.
-     * 
-     * @throws SQLException If a database error occurs
-     */
-    private void loadAllProceduresFromTreatmentPlan22147() throws SQLException {
-        System.out.println("loadAllProceduresFromTreatmentPlan22147 is disabled. Use loadProceduresForPatient instead.");
-
-        // Since we can't load from treatment plan 22147 directly with the new implementation,
-        // we'll just add some dummy data for testing
-        addDummyDataForTesting();
-    }
-
-    /**
-     * Handles the menu button click event.
-     * This would typically open a menu or navigate to a menu screen.
-     */
-    @FXML
-    private void handleMenuButtonAction() {
-        // Handle menu button click
-        System.out.println("Menu button clicked");
-        // In a real application, this might open a dropdown menu or navigate to a menu screen
-    }
-
-    /**
-     * Handles the config button click event.
-     * Navigates to the configuration screen.
+     * Handles the action event triggered by the "Config" button.
+     * <p>
+     * This method navigates to the configuration scene by invoking
+     * {@code navigateToConfig()} and handles any {@link IOException} that might occur.
      */
     @FXML
     private void handleConfigButtonAction() {
@@ -306,34 +416,61 @@ public class MainController extends Controller {
     }
 
     /**
-     * Handles the show plans button click event.
-     * Shows all treatment plans for the current patient in the table view.
-     */
-    @FXML
-    private void handleShowPlansButtonAction() {
-        System.out.println("Show Patient Plans button clicked");
-        showPatientTreatmentPlans();
-    }
-
-    /**
-     * Handles the OK button click event.
-     * This would typically save changes and close the screen or navigate to another screen.
+     * Handles the action event triggered by the "Ok" button.
+     * <p>
+     * This method prints the final order of procedures and could be extended
+     * to save the order to a database or perform other actions.
      */
     @FXML
     private void handleOkButtonAction() {
-        // Handle OK button click
         System.out.println("OK button clicked");
-        // In a real application, this might save changes and close the screen
+
+        // Print the final order of procedures
+        System.out.println("Final order of procedures:");
+        List<Integer> procedureNumbers = new ArrayList<>();
+        for (int i = 0; i < selectedProcedures.size(); i++) {
+            TreatmentPlanProcedure procedure = selectedProcedures.get(i);
+            System.out.println(i + ": " + procedure.getProcedureCode() + " - " + procedure.getDescription());
+            procedureNumbers.add(procedure.getProcedureNumber());
+        }
+        System.out.println("Final procedure numbers in order: " + procedureNumbers);
+
+        // Here you would typically save the order to a database or perform other actions
     }
 
     /**
-     * Handles the Cancel button click event.
-     * This would typically discard changes and close the screen or navigate to another screen.
+     * Handles the action event triggered by the "Cancel" button.
+     * This method hasn't been implemented yet.
      */
     @FXML
     private void handleCancelButtonAction() {
-        // Handle Cancel button click
         System.out.println("Cancel button clicked");
-        // In a real application, this might discard changes and close the screen
     }
+
+    /**
+     * Sets up the priority list view with priorities from the database and configures its click handler.
+     * Initializes the priority list view using SQL query: SELECT * FROM definition WHERE Category = 20
+     */
+    private void setupPriorityListView() {
+        try {
+            ObservableList<String> priorities = RiverGreenDB.getAllPrioritiesObservable();
+            sortPriorities(priorities);
+            priorityListView.setItems(priorities);
+        } catch (SQLException e) {
+            handleError(e);
+        }
+
+        // Add event handler to update priority when a priority is clicked in the list view
+        priorityListView.setOnMouseClicked(event -> {
+            String selectedPriority = priorityListView.getSelectionModel().getSelectedItem();
+            TreatmentPlanProcedure selectedProcedure = rightTableView.getSelectionModel().getSelectedItem();
+
+            if (selectedPriority != null && selectedProcedure != null) {
+                selectedProcedure.setPriority(selectedPriority);
+                rightTableView.refresh();
+            }
+        });
+    }
+
+
 }

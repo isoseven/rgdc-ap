@@ -11,11 +11,10 @@ import java.util.Map;
 
 /**
  * Utility class for handling scene transitions in the application.
- * Provides methods for loading and switching between scenes,
+ * Provides methods for loading and switching between scenes
  * and supports passing data between scenes.
  */
 public class SceneSwitcher {
-    // Updated the FXML_PATH to point to the correct directory
     private static final String FXML_PATH = "/com/stkych/rivergreenap/recent/";
     private static Stage primaryStage;
     private static final Map<String, Object> dataCache = new HashMap<>();
@@ -31,6 +30,7 @@ public class SceneSwitcher {
 
     /**
      * Loads an FXML file and returns the root element.
+     * Throws an exception if FXML file can't be found.
      *
      * @param fxmlFile The name of the FXML file to load (without path or extension)
      * @return The root element of the loaded FXML file
@@ -64,14 +64,15 @@ public class SceneSwitcher {
     }
 
     /**
-     * Switches to a new scene with default dimensions (1400x880).
+     * Switches to a new scene.
+     * Override with default dimensions (1600x880) if none given.
      *
      * @param fxmlFile The name of the FXML file to load (without path or extension)
      * @param title The title of the new scene
      * @throws IOException If the FXML file cannot be loaded
      */
     public static void switchScene(String fxmlFile, String title) throws IOException {
-        switchScene(fxmlFile, title, 1400, 880);
+        switchScene(fxmlFile, title, 1600, 880);
     }
 
     /**
@@ -97,7 +98,8 @@ public class SceneSwitcher {
     }
 
     /**
-     * Creates and shows a popup window with default dimensions (400x300).
+     * Creates and shows a popup window.
+     * Overload with default dimensions (400x300) if none given.
      *
      * @param fxmlFile The name of the FXML file to load (without path or extension)
      * @param title    The title of the popup window
@@ -109,7 +111,7 @@ public class SceneSwitcher {
     }
 
     /**
-     * Stores data in the cache for retrieval by another scene.
+     * Stores data in the cache to use in other scenes.
      *
      * @param key The key to store the data under
      * @param value The data to store
@@ -139,7 +141,7 @@ public class SceneSwitcher {
     }
 
     /**
-     * Clears all data from the cache.
+     * Clears the data cache.
      */
     public static void clearData() {
         dataCache.clear();

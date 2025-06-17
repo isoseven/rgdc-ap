@@ -39,7 +39,7 @@ public class RiverGreenApplication extends Application {
 
     /**
      * Main method to launch the application.
-     * Accepts an optional patient number as the first argument.
+     * Patient number should be the first argument.
      * 
      * @param args Command line arguments. If provided, the first argument should be the patient number.
      */
@@ -52,7 +52,6 @@ public class RiverGreenApplication extends Application {
                 System.err.println("Invalid patient number format. Using default: " + patientNumber);
             }
         }
-
         launch(args);
     }
 }
