@@ -7,7 +7,7 @@
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.text.Font?>
 
-<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="500.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.stkych.rivergreenap.OldControl">
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="500.0" xmlns="http://javafx.com/javafx/17.0.6" xmlns:fx="http://javafx.com/fxml/17.0.6" fx:controller="com.stkych.rivergreenap.OldControl">
    <children>
       <Button fx:id="drConfirmButton" layoutX="265.0" layoutY="338.0" mnemonicParsing="false" onAction="#onDrConfirmButtonClick" prefHeight="40.0" prefWidth="160.0" text="Confirm" textAlignment="CENTER" />
       <Label fx:id="drNameLabel" layoutX="204.0" layoutY="14.0" text="{name}">

@@ -1,6 +1,6 @@
 # RiverGreen Dental Application - Section 1
 
-## 🔰 Core Application Setup
+## ✅ Core Application Setup
 
 1. ✅ **Rename Main Application Class**
    - ✅ Rename `HelloApplication.java` to `RiverGreenApplication.java`

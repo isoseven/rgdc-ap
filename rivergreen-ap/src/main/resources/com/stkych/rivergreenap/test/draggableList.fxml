@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.stkych.rivergreenap.test.MultiSelectTableController"
+      prefHeight="600.0" prefWidth="800.0" spacing="10">
+    <padding>
+        <Insets top="20" right="20" bottom="20" left="20"/>
+    </padding>
+
+    <Label text="TableView with Multiple Selection" style="-fx-font-size: 18; -fx-font-weight: bold;"/>
+    
+    <Label text="- click+drag multiple items" wrapText="true"/>
+    <Label text="- ctrl + shift" wrapText="true"/>
+    <Label text="- asdfasdlkfjhasdflkjsdf" wrapText="true"/>
+    
+    <TableView fx:id="tableView" VBox.vgrow="ALWAYS">
+        <columns>
+            <TableColumn fx:id="idColumn" text="ID" prefWidth="100"/>
+            <TableColumn fx:id="nameColumn" text="Name" prefWidth="200"/>
+            <TableColumn fx:id="descriptionColumn" text="Description" prefWidth="300"/>
+            <TableColumn fx:id="dateColumn" text="Date" prefWidth="150"/>
+        </columns>
+        <placeholder>
+            <Label text="No data available"/>
+        </placeholder>
+    </TableView>
+    
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <Label text="Selected Items:"/>
+        <Label fx:id="selectedItemsLabel" text="0"/>
+    </HBox>
+    
+    <HBox spacing="10" alignment="CENTER_RIGHT">
+        <Button text="Clear Selection" onAction="#clearSelection"/>
+        <Button text="Select All" onAction="#selectAll"/>
+    </HBox>
+</VBox>

@@ -10,7 +10,7 @@
 <?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.RowConstraints?>
 
-<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="880.0" prefWidth="1600.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.stkych.rivergreenap.controller.MainController">
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="880.0" prefWidth="1600.0" xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml" fx:controller="com.stkych.rivergreenap.controller.archive.MainController">
    <children>
       <Button fx:id="configButton" layoutX="43.0" layoutY="27.0" mnemonicParsing="false" onAction="#handleConfigButtonAction" prefWidth="99.0" text="Config" />
       <TableView fx:id="leftTableView" layoutX="43.0" layoutY="73.0" prefHeight="736.0" prefWidth="624.0">

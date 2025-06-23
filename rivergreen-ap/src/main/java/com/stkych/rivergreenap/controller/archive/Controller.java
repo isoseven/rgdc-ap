@@ -1,4 +1,4 @@
-package com.stkych.rivergreenap.controller;
+package com.stkych.rivergreenap.controller.archive;
 
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;

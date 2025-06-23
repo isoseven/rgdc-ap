@@ -9,10 +9,13 @@
 <?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.RowConstraints?>
 
-<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="880.0" prefWidth="1400.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.stkych.rivergreenap.controller.ConfigController">
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="880.0" prefWidth="1400.0" xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml" fx:controller="com.stkych.rivergreenap.controller.archive.ConfigController">
    <children>
       <Button fx:id="backButton" layoutX="43.0" layoutY="27.0" mnemonicParsing="false" onAction="#handleBackButtonAction" prefWidth="99.0" text="Back" />
       <TableView fx:id="configTableView" layoutX="43.0" layoutY="72.0" prefHeight="736.0" prefWidth="624.0">
+            <selectionModel>
+               <TableView.TableViewSelectionModel selectionMode="MULTIPLE" />
+            </selectionModel>
          <columns>
             <TableColumn prefWidth="60.0" text="Priority" />
             <TableColumn prefWidth="35.0" text="Tth" />

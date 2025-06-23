@@ -1,4 +1,4 @@
-package com.stkych.rivergreenap.controller;
+package com.stkych.rivergreenap.controller.archive;
 
 import com.stkych.rivergreenap.RiverGreenDB;
 // import com.stkych.rivergreenap.RiverGreenDBOld; // Commented out as we're using RiverGreenDB instead
@@ -6,26 +6,23 @@ import com.stkych.rivergreenap.SceneSwitcher;
 import com.stkych.rivergreenap.model.TreatmentPlanProcedure;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
+import javafx.scene.control.SelectionMode;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.DataFormat;
 import javafx.scene.input.Dragboard;
-import javafx.scene.input.MouseButton;
-import javafx.scene.input.MouseEvent;
 import javafx.scene.input.TransferMode;
 
 import java.io.IOException;
 import java.net.URL;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.ResourceBundle;
 
@@ -119,6 +116,10 @@ public class MainController extends Controller {
     public void initialize(URL location, ResourceBundle resources) {
         // Set up the table columns
         setupTableColumns();
+
+        // Set the TableView selection mode to allow multiple selection
+        leftTableView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+        rightTableView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
 
         // Initialize the right table view with the selected procedures list
         rightTableView.setItems(selectedProcedures);

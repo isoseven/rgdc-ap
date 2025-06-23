@@ -1,8 +1,9 @@
-package com.stkych.rivergreenap.controller;
+package com.stkych.rivergreenap.controller.archive;
 
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.TableView;
+import javafx.scene.control.SelectionMode;
 import com.stkych.rivergreenap.SceneSwitcher;
 
 import java.io.IOException;
@@ -41,6 +42,9 @@ public class ConfigController extends Controller {
     public void initialize(URL location, ResourceBundle resources) {
         // Initialize the controller
         // This might include setting up table columns, loading configuration data, etc.
+
+        // Set the TableView selection mode to allow multiple selection
+        configTableView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
     }
 
     /**
