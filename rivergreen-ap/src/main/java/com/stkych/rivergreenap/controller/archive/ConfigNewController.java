@@ -13,7 +13,7 @@ import java.util.ResourceBundle;
  * Controller for the new configuration scene of the application.
  * Handles user interactions and navigation from the new configuration screen.
  */
-public class ConfigNewController extends Controller {
+public class ConfigNewController extends ControllerOld {
 
     @FXML
     private Button confirmButton;

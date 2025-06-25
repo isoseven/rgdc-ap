@@ -27,12 +27,16 @@ public class RiverGreenApplication extends Application {
             SceneSwitcher.initialize(stage);
             // Store the patient number in the data cache for the controller to use
             SceneSwitcher.putData("patientNumber", patientNumber);
-            // Switch to the main scene
-            SceneSwitcher.switchScene("sceneMain", "RiverGreen Dental Application");
+            // Switch to the main scene (using the new GUI)
+            SceneSwitcher.switchScene("news", "RiverGreen Dental Application");
         } else {
-            // Opens the error window instead of the application.
-            SceneSwitcher.initialize(stage);
-            SceneSwitcher.switchScene("sceneError", "Invalid Patient Number", 300, 150);
+            // Display a simple error alert instead of loading an error scene
+            javafx.scene.control.Alert alert = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR);
+            alert.setTitle("Error");
+            alert.setHeaderText("Invalid Patient Number");
+            alert.setContentText("Please provide a valid patient number.");
+            alert.showAndWait();
+            System.exit(1);
         }
 
     }

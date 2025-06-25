@@ -30,7 +30,7 @@ import java.util.ResourceBundle;
  * Controller for the main scene of the application.
  * Handles user interactions and navigation from the main screen.
  */
-public class MainController extends Controller {
+public class MainController extends ControllerOld {
 
     @FXML
     private Button menuButton;
@@ -372,14 +372,14 @@ public class MainController extends Controller {
         rightFeeColumn.setCellValueFactory(new PropertyValueFactory<>("fee"));
 
 //        // Log the column setup for debugging
-//        System.out.println("Table columns setup complete");
-//        System.out.println("Priority column: " + (priorityColumn != null ? "OK" : "NULL"));
-//        System.out.println("Tooth column: " + (toothColumn != null ? "OK" : "NULL"));
-//        System.out.println("Surface column: " + (surfaceColumn != null ? "OK" : "NULL"));
-//        System.out.println("Code column: " + (codeColumn != null ? "OK" : "NULL"));
-//        System.out.println("Diagnosis column: " + (diagnosisColumn != null ? "OK" : "NULL"));
-//        System.out.println("Description column: " + (descriptionColumn != null ? "OK" : "NULL"));
-//        System.out.println("Fee column: " + (feeColumn != null ? "OK" : "NULL"));
+        System.out.println("Table columns setup complete");
+        System.out.println("Priority column: " + (priorityColumn != null ? "OK" : "NULL"));
+        System.out.println("Tooth column: " + (toothColumn != null ? "OK" : "NULL"));
+        System.out.println("Surface column: " + (surfaceColumn != null ? "OK" : "NULL"));
+        System.out.println("Code column: " + (codeColumn != null ? "OK" : "NULL"));
+        System.out.println("Diagnosis column: " + (diagnosisColumn != null ? "OK" : "NULL"));
+        System.out.println("Description column: " + (descriptionColumn != null ? "OK" : "NULL"));
+        System.out.println("Fee column: " + (feeColumn != null ? "OK" : "NULL"));
 
         // Make sure columns are visible and have appropriate widths
         priorityColumn.setVisible(true);

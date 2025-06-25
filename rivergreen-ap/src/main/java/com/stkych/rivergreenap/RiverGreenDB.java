@@ -59,12 +59,12 @@ public class RiverGreenDB {
         // - Priority (returns equivalent string)
         // - Fee
         String sql = "SELECT pl.*, pc.ProcCode, pc.Descript, d1.ItemName AS PriorityName, d2.ItemName AS DiagnosisName FROM procedurelog pl " +
-                     "LEFT JOIN procedurecode pc ON pl.CodeNum = pc.CodeNum " +
-                     "LEFT JOIN definition d1 ON pl.Priority = d1.DefNum " +
-                     "LEFT JOIN definition d2 ON pl.Dx = d2.DefNum " +
-                     "WHERE pl.ProcNum IN " +
-                     "(SELECT ProcNum FROM treatplanattach WHERE TreatPlanNum IN " +
-                     "(SELECT TreatPlanNum FROM treatplan WHERE PatNum = ?))";
+                "LEFT JOIN procedurecode pc ON pl.CodeNum = pc.CodeNum " +
+                "LEFT JOIN definition d1 ON pl.Priority = d1.DefNum " +
+                "LEFT JOIN definition d2 ON pl.Dx = d2.DefNum " +
+                "WHERE pl.ProcNum IN " +
+                "(SELECT ProcNum FROM treatplanattach WHERE TreatPlanNum IN " +
+                "(SELECT TreatPlanNum FROM treatplan WHERE PatNum = ?))";
 
         // connection
         try (Connection conn = getConnection();

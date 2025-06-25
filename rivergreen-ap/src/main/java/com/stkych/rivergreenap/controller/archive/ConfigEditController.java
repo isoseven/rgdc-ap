@@ -14,7 +14,7 @@ import java.util.ResourceBundle;
  * Controller for the configuration edit scene of the application.
  * Handles user interactions and navigation from the configuration edit screen.
  */
-public class ConfigEditController extends Controller {
+public class ConfigEditController extends ControllerOld {
 
     @FXML
     private Button confirmButton;

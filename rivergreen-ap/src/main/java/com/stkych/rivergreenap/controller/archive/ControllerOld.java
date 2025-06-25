@@ -13,7 +13,7 @@ import java.util.ResourceBundle;
  * Provides common functionality and ensures a consistent approach across all controllers.
  * Implements Initializable to provide a standard initialization method.
  */
-public abstract class Controller implements Initializable {
+public abstract class ControllerOld implements Initializable {
 
     /**
      * Initializes the controller.
@@ -88,6 +88,15 @@ public abstract class Controller implements Initializable {
      */
     protected void popupConfigNew() throws IOException {
         SceneSwitcher.showPopup("sceneConfigNew", "New Configuration");
+    }
+
+    /**
+     * Navigates to the news scene.
+     *
+     * @throws IOException If the FXML file cannot be loaded
+     */
+    protected void navigateToNews() throws IOException {
+        SceneSwitcher.switchScene("news", "News");
     }
     /**
      * Handles errors that occur during controller operations.
