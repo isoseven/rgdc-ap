@@ -7,7 +7,9 @@ import org.jetbrains.annotations.NotNull;
 
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Database utility class for the RiverGreen Dental Application.
@@ -177,4 +179,283 @@ public class RiverGreenDB {
         List<String> priorities = getAllPriorities();
         return FXCollections.observableArrayList(priorities);
     }
+
+    /**
+     * Updates treatment plan procedures for a patient.
+     * This method generates SQL queries based on the procedure data and executes them within a transaction.
+     *
+     * @param patientNumber The patient number
+     * @param procedures The list of procedures to update
+     * @return A Map containing execution results: success count, failure count, error messages, and generated SQL queries
+     */
+    @SuppressWarnings("t")
+    public static Map<String, Object> updateTreatmentPlanProcedures(int patientNumber, List<TreatmentPlanProcedure> procedures) {
+        System.out.println("[DEBUG_LOG] Starting updateTreatmentPlanProcedures for Patient #" + patientNumber + " with " + (procedures != null ? procedures.size() : 0) + " procedures");
+
+        // Check database connection and permissions
+        try (Connection conn = getConnection()) {
+            System.out.println("[DEBUG_LOG] Testing database connection and permissions...");
+            try (Statement stmt = conn.createStatement()) {
+                // Test if we can update the procedurelog table
+                stmt.execute("SELECT 1 FROM procedurelog LIMIT 1");
+                // Test if we can access the treatplanattach table
+                stmt.execute("SELECT 1 FROM treatplanattach LIMIT 1");
+                System.out.println("[DEBUG_LOG] Database connection and permissions verified.");
+            }
+        } catch (SQLException e) {
+            System.out.println("[DEBUG_LOG] Database connection or permissions error: " + e.getMessage());
+            System.out.println("[DEBUG_LOG] SQL State: " + e.getSQLState());
+            System.out.println("[DEBUG_LOG] Error Code: " + e.getErrorCode());
+
+            Map<String, Object> results = new HashMap<>();
+            results.put("successCount", 0);
+            results.put("failureCount", 0);
+            results.put("errorMessages", List.of("Database connection or permissions error: " + e.getMessage()));
+            results.put("sqlQueries", new ArrayList<String>());
+            results.put("status", "database_error");
+            return results;
+        }
+
+        if (procedures == null || procedures.isEmpty()) {
+            System.out.println("[DEBUG_LOG] No procedures to update for Patient #" + patientNumber + ", returning early");
+            Map<String, Object> results = new HashMap<>();
+            results.put("successCount", 0);
+            results.put("failureCount", 0);
+            results.put("errorMessages", new ArrayList<String>());
+            results.put("sqlQueries", new ArrayList<String>());
+            results.put("status", "No procedures to update");
+            return results;
+        }
+
+        System.out.println("Generating SQL queries for Patient #" + patientNumber);
+
+        // Create a list to hold the SQL queries
+        List<String> sqlQueries = new ArrayList<>();
+
+        // Generate SQL update queries for each procedure
+        System.out.println("[DEBUG_LOG] Starting SQL generation for " + procedures.size() + " procedures");
+        for (TreatmentPlanProcedure procedure : procedures) {
+            try {
+                // Get the procedure number (primary key)
+                int procNum = procedure.getProcedureNumber();
+                System.out.println("[DEBUG_LOG] Generating SQL for procedure #" + procNum);
+
+                // Get the values that need updating
+                String priorityName = escapeSql(procedure.getPriority());
+                String toothNum = escapeSql(procedure.getToothNumber());
+                String surface = escapeSql(procedure.getSurface());
+                String procCode = escapeSql(procedure.getProcedureCode());
+                String diagnosis = escapeSql(procedure.getDiagnosis());
+                double fee = procedure.getFee();
+
+                System.out.println("[DEBUG_LOG] Procedure values: Priority=" + priorityName + 
+                                  ", ToothNum=" + toothNum + 
+                                  ", Surface=" + surface + 
+                                  ", ProcCode=" + procCode + 
+                                  ", Diagnosis=" + diagnosis + 
+                                  ", Fee=" + fee);
+
+                // Create a comprehensive update query for procedurelog
+                StringBuilder queryBuilder = new StringBuilder();
+                queryBuilder.append("UPDATE procedurelog SET ");
+
+                // Priority - using subquery to get DefNum from definition table
+                if (priorityName != null && !priorityName.isEmpty() && !priorityName.equals("None")) {
+                    queryBuilder.append("Priority = (SELECT DefNum FROM definition WHERE ItemName = '")
+                               .append(priorityName)
+                               .append("' AND Category = 20 LIMIT 1), ");
+                } else {
+                    queryBuilder.append("Priority = 0, "); // Default value for no priority
+                }
+
+                // Other fields - handle null or empty values
+                if (toothNum != null && !toothNum.isEmpty()) {
+                    queryBuilder.append("ToothNum = '").append(toothNum).append("', ");
+                } else {
+                    queryBuilder.append("ToothNum = NULL, ");
+                }
+
+                if (surface != null && !surface.isEmpty()) {
+                    queryBuilder.append("Surf = '").append(surface).append("', ");
+                } else {
+                    queryBuilder.append("Surf = NULL, ");
+                }
+
+                // CodeNum - using subquery to get CodeNum from procedurecode table
+                if (procCode != null && !procCode.isEmpty()) {
+                    queryBuilder.append("CodeNum = (SELECT CodeNum FROM procedurecode WHERE ProcCode = '")
+                               .append(procCode)
+                               .append("' LIMIT 1), ");
+                } else {
+                    queryBuilder.append("CodeNum = NULL, ");
+                }
+
+                // Dx - using subquery to get DefNum from definition table for diagnosis
+                if (diagnosis != null && !diagnosis.isEmpty() && !diagnosis.equals("No diagnosis")) {
+                    queryBuilder.append("Dx = (SELECT DefNum FROM definition WHERE ItemName = '")
+                               .append(diagnosis)
+                               .append("' AND Category = 16 LIMIT 1), ");
+                } else {
+                    queryBuilder.append("Dx = 0, "); // Default value for no diagnosis
+                }
+
+                // Fee
+                queryBuilder.append("ProcFee = ").append(fee);
+
+                // Where clause
+                queryBuilder.append(" WHERE ProcNum = ").append(procNum);
+
+                // Add the procedurelog update query to the list
+                String finalQuery = queryBuilder.toString();
+                sqlQueries.add(finalQuery);
+                System.out.println("[DEBUG_LOG] Added procedurelog update query for procedure #" + procNum + " to the list");
+
+                // Create an update query for treatplanattach
+                // This ensures that the procedure is properly linked to the treatment plan
+                StringBuilder tpaQueryBuilder = new StringBuilder();
+                tpaQueryBuilder.append("UPDATE treatplanattach SET ");
+
+                // Update the Priority field in treatplanattach
+                // Use the same priority logic as in the procedurelog update
+                if (priorityName != null && !priorityName.isEmpty() && !priorityName.equals("None")) {
+                    tpaQueryBuilder.append("Priority = (SELECT DefNum FROM definition WHERE ItemName = '")
+                               .append(priorityName)
+                               .append("' AND Category = 20 LIMIT 1)");
+                } else {
+                    tpaQueryBuilder.append("Priority = 0"); // Default value for no priority
+                }
+
+                // Where clause - update the treatplanattach record for this procedure
+                tpaQueryBuilder.append(" WHERE ProcNum = ").append(procNum);
+
+                // Add the treatplanattach update query to the list
+                String tpaFinalQuery = tpaQueryBuilder.toString();
+                sqlQueries.add(tpaFinalQuery);
+                System.out.println("[DEBUG_LOG] Added treatplanattach update query for procedure #" + procNum + " to the list");
+
+            } catch (Exception e) {
+                System.err.println("Error generating SQL for procedure: " + e.getMessage());
+                System.out.println("[DEBUG_LOG] Error generating SQL for procedure #" + procedure.getProcedureNumber() + ": " + e.getMessage());
+            }
+        }
+
+        System.out.println("[DEBUG_LOG] SQL generation complete. Generated " + sqlQueries.size() + " SQL queries for Patient #" + patientNumber);
+
+        // Print all SQL queries with patient information
+        System.out.println("Generated " + sqlQueries.size() + " SQL queries for Patient #" + patientNumber + ":");
+        for (int i = 0; i < sqlQueries.size(); i++) {
+            System.out.println((i + 1) + ": " + sqlQueries.get(i));
+        }
+
+        // Execute the queries and get the results
+        System.out.println("[DEBUG_LOG] Starting execution of " + sqlQueries.size() + " SQL queries for Patient #" + patientNumber);
+        Map<String, Object> results = executeUpdateQueries(sqlQueries);
+
+        // Add the generated SQL queries to the results
+        results.put("sqlQueries", sqlQueries);
+
+        // Log the results
+        String status = (String) results.get("status");
+        int successCount = (int) results.get("successCount");
+        int failureCount = (int) results.get("failureCount");
+        System.out.println("[DEBUG_LOG] SQL execution complete for Patient #" + patientNumber + ". Status: " + status + 
+                          ", Success: " + successCount + ", Failure: " + failureCount);
+
+        return results;
+    }
+
+    /**
+     * Escapes special characters in SQL strings to prevent SQL injection.
+     * 
+     * @param input The input string to escape
+     * @return The escaped string
+     */
+    private static String escapeSql(String input) {
+        if (input == null) {
+            return "";
+        }
+        return input.replace("'", "''");
+    }
+
+    /**
+     * Executes a list of SQL update queries with individual transactions.
+     * This method executes each query in its own transaction, committing successful queries
+     * and only rolling back failed ones.
+     *
+     * @param sqlQueries The list of SQL update queries to execute
+     * @return A Map containing execution results: success count, failure count, and error messages
+     */
+    public static Map<String, Object> executeUpdateQueries(List<String> sqlQueries) {
+    Map<String, Object> results = new HashMap<>();
+    List<String> errorMessages = new ArrayList<>();
+    int successCount = 0;
+    int failureCount = 0;
+
+    // Early return if no queries
+    if (sqlQueries == null || sqlQueries.isEmpty()) {
+        return createResultMap(0, 0, errorMessages, "No queries to execute");
+    }
+
+    Connection conn = null;
+    try {
+        conn = getConnection();
+        conn.setAutoCommit(false);  // Start transaction mode
+
+        for (int i = 0; i < sqlQueries.size(); i++) {
+            String sql = sqlQueries.get(i);
+
+            // Skip empty queries
+            if (sql == null || sql.trim().isEmpty()) {
+                failureCount++;
+                errorMessages.add("Query " + (i + 1) + " is empty");
+                continue;
+            }
+
+            try (Statement stmt = conn.createStatement()) {
+                int rowsAffected = stmt.executeUpdate(sql);
+                conn.commit();  // Commit each successful query
+                successCount++;
+                System.out.println("[DEBUG_LOG] Query " + (i + 1) + " executed successfully. Rows affected: " + rowsAffected);
+            } catch (SQLException e) {
+                conn.rollback();  // Rollback failed query
+                errorMessages.add("Query " + (i + 1) + ": " + e.getMessage());
+                failureCount++;
+                System.out.println("[DEBUG_LOG] Query " + (i + 1) + " failed: " + e.getMessage());
+            }
+        }
+    } catch (SQLException e) {
+        errorMessages.add("Database connection error: " + e.getMessage());
+        System.out.println("[DEBUG_LOG] Database connection error: " + e.getMessage());
+        return createResultMap(0, sqlQueries.size(), errorMessages, "connection_error");
+    } finally {
+        if (conn != null) {
+            try {
+                conn.setAutoCommit(true);  // Reset autoCommit to true
+                conn.close();
+                System.out.println("[DEBUG_LOG] Database connection closed and autoCommit reset to true");
+            } catch (SQLException e) {
+                System.out.println("[DEBUG_LOG] Error closing connection: " + e.getMessage());
+            }
+        }
+    }
+
+    String status = determineStatus(successCount, failureCount);
+    return createResultMap(successCount, failureCount, errorMessages, status);
+}
+
+private static Map<String, Object> createResultMap(int successCount, int failureCount, 
+                                                 List<String> errorMessages, String status) {
+    Map<String, Object> results = new HashMap<>();
+    results.put("successCount", successCount);
+    results.put("failureCount", failureCount);
+    results.put("errorMessages", errorMessages);
+    results.put("status", status);
+    return results;
+}
+
+private static String determineStatus(int successCount, int failureCount) {
+    if (failureCount == 0) return "success";
+    if (successCount > 0) return "partial_success";
+    return "failure";
+}
 }

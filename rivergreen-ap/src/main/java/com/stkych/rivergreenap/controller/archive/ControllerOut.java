@@ -30,7 +30,7 @@ import java.util.ResourceBundle;
  * Controller for the main scene of the application.
  * Handles user interactions and navigation from the main screen.
  */
-public class MainController extends ControllerOld {
+public class ControllerOut extends ControllerOld {
 
     @FXML
     private Button menuButton;

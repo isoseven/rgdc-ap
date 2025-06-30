@@ -14,7 +14,7 @@ import java.util.ResourceBundle;
  * Controller for the configuration scene of the application.
  * Handles user interactions and navigation from the configuration screen.
  */
-public class ConfigController extends ControllerOld {
+public class ControllerOutConfig extends ControllerOld {
 
     @FXML
     private Button backButton;

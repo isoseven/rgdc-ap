@@ -16,7 +16,7 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<VBox maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="800.0" prefWidth="1100.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.stkych.rivergreenap.controller.ControllerMain2">
+<VBox maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="800.0" prefWidth="1100.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.stkych.rivergreenap.controller.ControllerMain">
    <children>
       <MenuBar>
         <menus>
@@ -28,6 +28,7 @@
           <Menu mnemonicParsing="false" text="Config">
             <items>
               <MenuItem mnemonicParsing="false" text="Delete" />
+              <MenuItem mnemonicParsing="false" onAction="#handleRulesetButtonAction" text="Ruleset" />
             </items>
           </Menu>
           <Menu mnemonicParsing="false" text="Help">
@@ -48,11 +49,15 @@
                      </font>
                   </Label>
                   <Separator prefWidth="200.0" />
-                  <MenuButton fx:id="doctorSelectMenuButton" alignment="CENTER" contentDisplay="CENTER" mnemonicParsing="false" prefHeight="35.0" prefWidth="280.0" text="d. select" textAlignment="CENTER" VBox.vgrow="ALWAYS">
-                    <items>
-                      <MenuItem mnemonicParsing="false" text="Action 1" />
-                      <MenuItem mnemonicParsing="false" text="Action 2" />
-                    </items>
+                  <Label contentDisplay="CENTER" prefHeight="30.0" prefWidth="374.0" text="Ruleset" textAlignment="CENTER">
+                     <font>
+                        <Font size="14.0" />
+                     </font>
+                     <VBox.margin>
+                        <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
+                     </VBox.margin>
+                  </Label>
+                  <MenuButton fx:id="rulesetSelectMenuButton" alignment="CENTER" contentDisplay="CENTER" mnemonicParsing="false" prefHeight="35.0" prefWidth="280.0" text="Select Ruleset" textAlignment="CENTER" VBox.vgrow="ALWAYS">
                      <padding>
                         <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
                      </padding>
