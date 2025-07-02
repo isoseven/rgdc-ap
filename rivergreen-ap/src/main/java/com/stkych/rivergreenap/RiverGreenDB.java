@@ -181,6 +181,50 @@ public class RiverGreenDB {
     }
 
     /**
+     * Retrieves all diagnoses from the database.
+     * This method queries the definition table for all diagnosis definitions.
+     *
+     * @return A list of diagnosis names
+     * @throws SQLException If a database error occurs
+     */
+    public static @NotNull List<String> getAllDiagnoses() throws SQLException {
+        // Create a list to hold the diagnoses
+        List<String> diagnoses = new ArrayList<>();
+
+        // SQL Query to retrieve all diagnoses from the definition table
+        // The definition table contains various types of definitions, including diagnoses
+        // We filter for the category that contains diagnoses (Category = 16)
+        String sql = "SELECT * FROM definition WHERE Category = 16";
+
+        // Execute the query
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                String diagnosisName = rs.getString("ItemName");
+                if (diagnosisName != null && !diagnosisName.isEmpty()) {
+                    diagnoses.add(diagnosisName);
+                }
+            }
+        }
+
+        return diagnoses;
+    }
+
+    /**
+     * Retrieves all diagnoses from the database and returns them as an ObservableList.
+     * This is a convenience method for JavaFX UI components.
+     *
+     * @return An ObservableList of diagnosis names
+     * @throws SQLException If a database error occurs
+     */
+    public static ObservableList<String> getAllDiagnosesObservable() throws SQLException {
+        List<String> diagnoses = getAllDiagnoses();
+        return FXCollections.observableArrayList(diagnoses);
+    }
+
+    /**
      * Updates treatment plan procedures for a patient.
      * This method generates SQL queries based on the procedure data and executes them within a transaction.
      *

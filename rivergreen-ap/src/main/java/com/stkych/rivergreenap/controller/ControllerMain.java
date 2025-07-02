@@ -55,6 +55,9 @@ public class ControllerMain extends ControllerOld {
     private ListView<String> priorityListView;
 
     @FXML
+    private ListView<String> diagnosisListView;
+
+    @FXML
     private Label patientNameLabel;
 
     @FXML
@@ -109,6 +112,8 @@ public class ControllerMain extends ControllerOld {
         setupMultiSelect();
 
         setupPriorityListView();
+
+        setupDiagnosisListView();
 
         // Load rulesets and set up the ruleset selection menu
         loadRulesets();
@@ -242,6 +247,48 @@ public class ControllerMain extends ControllerOld {
 
         // Update the original list with sorted priorities
         priorities.setAll(sortedPriorities);
+    }
+
+    /**
+     * Sets up the diagnosis list view with diagnoses from the database and configures its click handler.
+     */
+    private void setupDiagnosisListView() {
+        try {
+            ObservableList<String> diagnoses = RiverGreenDB.getAllDiagnosesObservable();
+            diagnosisListView.setItems(diagnoses);
+        } catch (SQLException e) {
+            handleError(e);
+        }
+
+        // Add event handler to update diagnosis when a diagnosis is clicked in the list view
+        diagnosisListView.setOnMouseClicked(event -> {
+            String selectedDiagnosis = diagnosisListView.getSelectionModel().getSelectedItem();
+            ObservableList<TreatmentPlanProcedure> selectedProcedures = listView.getSelectionModel().getSelectedItems();
+
+            if (selectedDiagnosis != null && !selectedProcedures.isEmpty()) {
+                // Store the selected indices before updating
+                List<Integer> selectedIndices = listView.getSelectionModel().getSelectedIndices();
+
+                // Update all selected procedures with the new diagnosis
+                for (TreatmentPlanProcedure procedure : selectedProcedures) {
+                    procedure.setDiagnosis(selectedDiagnosis);
+                }
+
+                // Refresh the list view to show the updated diagnoses
+                listView.refresh();
+
+                // Restore the selection
+                listView.getSelectionModel().clearSelection();
+                for (Integer index : selectedIndices) {
+                    listView.getSelectionModel().select(index);
+                }
+
+                // Reset drag selection tracking variables
+                dragStartIndex = -1;
+                isDragging = false;
+                dragStartY = -1;
+            }
+        });
     }
 
     /**
