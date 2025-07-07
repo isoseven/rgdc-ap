@@ -28,8 +28,8 @@
           </Menu>
           <Menu mnemonicParsing="false" text="Config">
             <items>
-              <MenuItem mnemonicParsing="false" text="Delete" />
               <MenuItem mnemonicParsing="false" onAction="#handleRulesetButtonAction" text="Ruleset" />
+              <MenuItem mnemonicParsing="false" text="Reset" />
             </items>
           </Menu>
           <Menu mnemonicParsing="false" text="Help">
@@ -44,7 +44,7 @@
             <ListView fx:id="listView" prefHeight="200.0" prefWidth="200.0" />
             <VBox prefHeight="200.0" prefWidth="256.0">
                <children>
-                  <Label fx:id="patientNameLabel" alignment="CENTER" contentDisplay="CENTER" prefHeight="30.0" prefWidth="374.0" text="Patient Name" textAlignment="CENTER">
+                  <Label fx:id="patientNameLabel" alignment="CENTER" contentDisplay="CENTER" prefHeight="30.0" prefWidth="374.0" style="-fx-font-size: 20px; -fx-text-overrun: ellipsis; -fx-text-alignment: center;" text="Patient Name" textAlignment="CENTER">
                      <font>
                         <Font size="20.0" />
                      </font>
@@ -99,7 +99,7 @@
                      </rowConstraints>
                      <children>
                         <CheckBox fx:id="CheckboxOverride" mnemonicParsing="false" text="Override Existing Priority" />
-                        <CheckBox fx:id="CheckboxCopy" mnemonicParsing="false" selected="true" text="Create New Copy" GridPane.rowIndex="1" />
+                        <CheckBox fx:id="CheckboxCopy" mnemonicParsing="false" text="Create New Copy (beta)" GridPane.rowIndex="1" />
                      </children>
                      <padding>
                         <Insets left="30.0" right="10.0" top="10.0" />

@@ -66,7 +66,7 @@ public class RiverGreenDB {
                 "LEFT JOIN definition d2 ON pl.Dx = d2.DefNum " +
                 "WHERE pl.ProcNum IN " +
                 "(SELECT ProcNum FROM treatplanattach WHERE TreatPlanNum IN " +
-                "(SELECT TreatPlanNum FROM treatplan WHERE PatNum = ?))";
+                "(SELECT TreatPlanNum FROM treatplan WHERE PatNum = ? AND TPStatus = 1))";
 
         // connection
         try (Connection conn = getConnection();
@@ -222,6 +222,64 @@ public class RiverGreenDB {
     public static ObservableList<String> getAllDiagnosesObservable() throws SQLException {
         List<String> diagnoses = getAllDiagnoses();
         return FXCollections.observableArrayList(diagnoses);
+    }
+
+    /**
+     * Retrieves a patient's full name from the database.
+     * This method queries the patient table for the patient's first, middle, and last name.
+     *
+     * @param patientNumber The patient number
+     * @return The patient's full name (Last, First Middle)
+     * @throws SQLException If a database error occurs
+     */
+    public static String getPatientFullName(int patientNumber) throws SQLException {
+        String fullName = "Patient #" + patientNumber; // Default value if query fails
+
+        // SQL Query to retrieve the patient's name
+        String sql = "SELECT LName, FName, MiddleI FROM patient WHERE PatNum = ?";
+
+        // Execute the query
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, patientNumber);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    String lastName = rs.getString("LName");
+                    String firstName = rs.getString("FName");
+                    String middleInitial = rs.getString("MiddleI");
+
+                    // Build the full name
+                    StringBuilder nameBuilder = new StringBuilder();
+
+                    // Add last name if available
+                    if (lastName != null && !lastName.isEmpty()) {
+                        nameBuilder.append(lastName);
+                    }
+
+                    // Add first name if available
+                    if (firstName != null && !firstName.isEmpty()) {
+                        if (nameBuilder.length() > 0) {
+                            nameBuilder.append(", ");
+                        }
+                        nameBuilder.append(firstName);
+                    }
+
+                    // Add middle initial if available
+                    if (middleInitial != null && !middleInitial.isEmpty()) {
+                        nameBuilder.append(" ").append(middleInitial);
+                    }
+
+                    // If we have a name, use it; otherwise, keep the default
+                    if (nameBuilder.length() > 0) {
+                        fullName = nameBuilder.toString();
+                    }
+                }
+            }
+        }
+
+        return fullName;
     }
 
     /**

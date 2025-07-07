@@ -9,6 +9,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.MenuButton;
@@ -25,6 +26,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.net.URL;
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
@@ -56,6 +58,12 @@ public class ControllerMain extends ControllerOld {
 
     @FXML
     private ListView<String> diagnosisListView;
+
+    @FXML
+    private CheckBox CheckboxCopy;
+
+    @FXML
+    private CheckBox CheckboxOverride;
 
     @FXML
     private Label patientNameLabel;
@@ -126,8 +134,18 @@ public class ControllerMain extends ControllerOld {
                 // Load procedures for the patient using the RiverGreenDB class
                 loadProceduresForPatient(patientNumber);
 
-                // Set patient name (using patient number as placeholder since getPatientName doesn't exist)
-                patientNameLabel.setText("Patient #" + patientNumber);
+                // Get and set the patient's full name
+                try {
+                    String patientFullName = RiverGreenDB.getPatientFullName(patientNumber);
+                    patientNameLabel.setText(patientFullName);
+
+                    // Adjust font size based on text length
+                    adjustLabelFontSize(patientNameLabel, patientFullName);
+                } catch (SQLException e) {
+                    // If there's an error getting the full name, fall back to just the patient number
+                    patientNameLabel.setText("Patient #" + patientNumber);
+                    System.out.println("Error getting patient full name: " + e.getMessage());
+                }
             } else {
                 System.out.println("No patient number found");
                 // Create an empty observable list with just the header
@@ -294,6 +312,7 @@ public class ControllerMain extends ControllerOld {
     /**
      * Handles the action event triggered by the "Ok" button.
      * Reads all list items, updates the procedures in the database, and prints the results.
+     * If the "Create New Copy" checkbox is checked, creates a new treatment plan instead of updating the existing one.
      */
     @FXML
     private void handleOkButtonAction() {
@@ -317,6 +336,26 @@ public class ControllerMain extends ControllerOld {
             return;
         }
 
+        // Check if we should create a new treatment plan
+        boolean createNewTreatmentPlan = CheckboxCopy.isSelected();
+        System.out.println("Create new treatment plan: " + createNewTreatmentPlan);
+
+        if (createNewTreatmentPlan) {
+            // Create a new treatment plan and update procedures
+            createNewTreatmentPlan(patientNumber, allProcedures);
+        } else {
+            // Use the existing behavior to update procedures
+            updateExistingTreatmentPlan(patientNumber, allProcedures);
+        }
+    }
+
+    /**
+     * Updates the existing treatment plan with the provided procedures.
+     * 
+     * @param patientNumber The patient number
+     * @param allProcedures The list of procedures to update
+     */
+    private void updateExistingTreatmentPlan(int patientNumber, List<TreatmentPlanProcedure> allProcedures) {
         // Call the RiverGreenDB method to update the procedures
         Map<String, Object> results = RiverGreenDB.updateTreatmentPlanProcedures(patientNumber, allProcedures);
 
@@ -345,6 +384,205 @@ public class ControllerMain extends ControllerOld {
                 System.out.println("- " + error);
             }
         }
+    }
+
+    /**
+     * Creates a new treatment plan and updates procedures.
+     * This method:
+     * 1. Makes the current active treatment plan inactive (TPStatus = 0)
+     * 2. Creates a new treatment plan with TPStatus = 1
+     * 3. Inserts into treatplanattach with the values already established
+     * 
+     * @param patientNumber The patient number
+     * @param allProcedures The list of procedures to update
+     */
+    private void createNewTreatmentPlan(int patientNumber, List<TreatmentPlanProcedure> allProcedures) {
+        Connection conn = null;
+        Statement stmt = null;
+        List<String> sqlQueries = new ArrayList<>();
+        List<String> errorMessages = new ArrayList<>();
+        int successCount = 0;
+        int failureCount = 0;
+
+        try {
+            // Get a database connection
+            conn = RiverGreenDB.getConnection();
+            conn.setAutoCommit(false); // Start transaction
+            stmt = conn.createStatement();
+
+            // 1. Make the current active treatment plan inactive (TPStatus = 0)
+            String deactivateQuery = "UPDATE treatplan SET TPStatus = 0 WHERE PatNum = " + patientNumber + " AND TPStatus = 1";
+            sqlQueries.add(deactivateQuery);
+            System.out.println("Deactivating current treatment plan: " + deactivateQuery);
+            stmt.executeUpdate(deactivateQuery);
+
+            // 2. Create a new treatment plan with TPStatus = 1
+            String createTreatplanQuery = "INSERT INTO treatplan (PatNum,DateTP,Heading,Note,Signature,SigIsTopaz,ResponsParty,DocNum,TPStatus,SecUserNumEntry,SecDateEntry,UserNumPresenter,TPType,SignaturePractice,DateTSigned,DateTPracticeSigned,SignatureText,SignaturePracticeText,MobileAppDeviceNum) " +
+                    "VALUES(" + patientNumber + ",CURDATE(),'Active Treatment Plan','As a courtesy to our patients we will file your insurance. Please be ware that THIS IS ESTIMATE ONLY. If your insurance does not pay the claim within 90 days the balance will be billed to you. We do our very best to ESTIMATE what your insurance will pay but cannot guarantee the amout that they will approve. This ESTIMATE is valid for 90 days from the above date. I understand that during treatment it may be necessary to change or add procedures because of conditions found while working on the teeth that were not discovered during examination. I give my permission to the Dentist to make any/all changes and additions as necessary.\\nWe appreciate any referrals.\\nThank You For Choosing Us For Your Dental Needs.\\nDr. B.J. Lee\\nDr. Jong Lee\\n\\nPatient Or Guardian Signature______________________________','',0,0,0,1,4,NOW(),0,0,'','0001-01-01 00:00:00','0001-01-01 00:00:00','','',0)";
+            sqlQueries.add(createTreatplanQuery);
+            System.out.println("Creating new treatment plan: " + createTreatplanQuery);
+            stmt.executeUpdate(createTreatplanQuery);
+
+            // Get the newly created treatment plan number
+            String getTreatPlanNumQuery = "SELECT TreatPlanNum FROM treatplan WHERE PatNum = " + patientNumber + " AND TPStatus = 1 ORDER BY TreatPlanNum DESC LIMIT 1";
+            ResultSet rs = stmt.executeQuery(getTreatPlanNumQuery);
+            int treatPlanNum = 0;
+            if (rs.next()) {
+                treatPlanNum = rs.getInt("TreatPlanNum");
+                System.out.println("New treatment plan number: " + treatPlanNum);
+            } else {
+                throw new SQLException("Failed to get new treatment plan number");
+            }
+            rs.close();
+
+            // 3. For each procedure, create a new procedure record and link it to the new treatment plan
+            for (TreatmentPlanProcedure procedure : allProcedures) {
+                // Get the values from the procedure
+                String priorityName = procedure.getPriority();
+                String toothNum = procedure.getToothNumber();
+                String surface = procedure.getSurface();
+                String procCode = procedure.getProcedureCode();
+                String diagnosis = procedure.getDiagnosis();
+                double fee = procedure.getFee();
+
+                // Get the priority DefNum
+                int priorityDefNum = 0;
+                if (priorityName != null && !priorityName.isEmpty() && !priorityName.equals("None")) {
+                    // Escape the priority name to prevent SQL injection
+                    String escapedPriorityName = escapeSql(priorityName);
+                    String getPriorityDefNumQuery = "SELECT DefNum FROM definition WHERE ItemName = '" + escapedPriorityName + "' AND Category = 20 LIMIT 1";
+                    ResultSet priorityRs = stmt.executeQuery(getPriorityDefNumQuery);
+                    if (priorityRs.next()) {
+                        priorityDefNum = priorityRs.getInt("DefNum");
+                    }
+                    priorityRs.close();
+                }
+
+                // Get the diagnosis DefNum
+                int diagnosisDefNum = 0;
+                if (diagnosis != null && !diagnosis.isEmpty() && !diagnosis.equals("No diagnosis")) {
+                    // Escape the diagnosis name to prevent SQL injection
+                    String escapedDiagnosis = escapeSql(diagnosis);
+                    String getDiagnosisDefNumQuery = "SELECT DefNum FROM definition WHERE ItemName = '" + escapedDiagnosis + "' AND Category = 16 LIMIT 1";
+                    ResultSet diagnosisRs = stmt.executeQuery(getDiagnosisDefNumQuery);
+                    if (diagnosisRs.next()) {
+                        diagnosisDefNum = diagnosisRs.getInt("DefNum");
+                    }
+                    diagnosisRs.close();
+                }
+
+                // Get the CodeNum from the procedurecode table
+                int codeNum = 0;
+                if (procCode != null && !procCode.isEmpty()) {
+                    // Escape the procedure code to prevent SQL injection
+                    String escapedProcCode = escapeSql(procCode);
+                    String getCodeNumQuery = "SELECT CodeNum FROM procedurecode WHERE ProcCode = '" + escapedProcCode + "' LIMIT 1";
+                    ResultSet codeNumRs = stmt.executeQuery(getCodeNumQuery);
+                    if (codeNumRs.next()) {
+                        codeNum = codeNumRs.getInt("CodeNum");
+                    }
+                    codeNumRs.close();
+                }
+
+                // Create a new procedure record in the procedurelog table
+                StringBuilder insertProcedureQuery = new StringBuilder();
+                insertProcedureQuery.append("INSERT INTO procedurelog (PatNum, ToothNum, Surf, CodeNum, Priority, Dx, ProcFee) VALUES (");
+                insertProcedureQuery.append(patientNumber).append(", ");
+
+                // Handle null or empty values
+                if (toothNum != null && !toothNum.isEmpty()) {
+                    insertProcedureQuery.append("'").append(escapeSql(toothNum)).append("', ");
+                } else {
+                    insertProcedureQuery.append("NULL, ");
+                }
+
+                if (surface != null && !surface.isEmpty()) {
+                    insertProcedureQuery.append("'").append(escapeSql(surface)).append("', ");
+                } else {
+                    insertProcedureQuery.append("NULL, ");
+                }
+
+                insertProcedureQuery.append(codeNum).append(", ");
+                insertProcedureQuery.append(priorityDefNum).append(", ");
+                insertProcedureQuery.append(diagnosisDefNum).append(", ");
+                insertProcedureQuery.append(fee).append(")");
+
+                String finalInsertProcedureQuery = insertProcedureQuery.toString();
+                sqlQueries.add(finalInsertProcedureQuery);
+                System.out.println("Creating new procedure: " + finalInsertProcedureQuery);
+                stmt.executeUpdate(finalInsertProcedureQuery, Statement.RETURN_GENERATED_KEYS);
+
+                // Get the newly created procedure number
+                ResultSet generatedKeys = stmt.getGeneratedKeys();
+                int newProcNum = 0;
+                if (generatedKeys.next()) {
+                    newProcNum = generatedKeys.getInt(1);
+                    System.out.println("New procedure number: " + newProcNum);
+                } else {
+                    throw new SQLException("Failed to get new procedure number");
+                }
+                generatedKeys.close();
+
+                // Insert into treatplanattach with the new procedure number
+                String insertTreatplanAttachQuery = "INSERT INTO treatplanattach (TreatPlanNum, ProcNum, Priority) VALUES (" + treatPlanNum + ", " + newProcNum + ", " + priorityDefNum + ")";
+                sqlQueries.add(insertTreatplanAttachQuery);
+                System.out.println("Inserting into treatplanattach: " + insertTreatplanAttachQuery);
+                stmt.executeUpdate(insertTreatplanAttachQuery);
+            }
+
+            // Commit the transaction
+            conn.commit();
+            successCount = sqlQueries.size();
+            System.out.println("Transaction committed successfully");
+
+        } catch (SQLException e) {
+            // Roll back the transaction if an error occurs
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                    System.out.println("Transaction rolled back due to error: " + e.getMessage());
+                } catch (SQLException ex) {
+                    System.out.println("Error rolling back transaction: " + ex.getMessage());
+                }
+            }
+            failureCount = sqlQueries.size();
+            errorMessages.add("Database error: " + e.getMessage());
+            System.out.println("Error creating new treatment plan: " + e.getMessage());
+        } finally {
+            // Close resources
+            if (stmt != null) {
+                try {
+                    stmt.close();
+                } catch (SQLException e) {
+                    System.out.println("Error closing statement: " + e.getMessage());
+                }
+            }
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true); // Reset auto-commit
+                    conn.close();
+                } catch (SQLException e) {
+                    System.out.println("Error closing connection: " + e.getMessage());
+                }
+            }
+        }
+
+        // Print summary
+        System.out.println("\nExecution summary for Patient #" + patientNumber + ":");
+        System.out.println("Status: " + (failureCount == 0 ? "success" : "error"));
+        System.out.println("Total queries: " + sqlQueries.size());
+        System.out.println("Successful: " + successCount);
+        System.out.println("Failed: " + failureCount);
+
+        if (!errorMessages.isEmpty()) {
+            System.out.println("\nError details:");
+            for (String error : errorMessages) {
+                System.out.println("- " + error);
+            }
+        }
+
+        // Store the queries in the data cache for potential future use
+        SceneSwitcher.putData("pendingSqlQueries", sqlQueries);
     }
 
     /**
@@ -562,6 +800,59 @@ public class ControllerMain extends ControllerOld {
         listView.setOnMousePressed(this::handleMousePressed);
         listView.setOnMouseDragged(this::handleMouseDragged);
         listView.setOnMouseReleased(this::handleMouseReleased);
+
+        // Set up double-click handler to select all items with the same tooth number
+        listView.setOnMouseClicked(this::handleMouseClicked);
+    }
+
+    /**
+     * Handles mouse clicked events, specifically for double-clicks to select all items with the same tooth number.
+     * 
+     * @param event The mouse event
+     */
+    private void handleMouseClicked(MouseEvent event) {
+        // Check if it's a double-click
+        if (event.getClickCount() == 2) {
+            System.out.println("[DEBUG] Double-click detected");
+
+            // Get the item index at the mouse position
+            int itemIndex = getListItemIndex(event);
+
+            // Skip if it's the header item (index 0) or an invalid index
+            if (itemIndex <= 0 || itemIndex >= listView.getItems().size()) {
+                System.out.println("[DEBUG] Skipping header item or invalid index: " + itemIndex);
+                return;
+            }
+
+            // Get the clicked item
+            TreatmentPlanProcedure clickedItem = listView.getItems().get(itemIndex);
+
+            // Get the tooth number of the clicked item
+            String toothNumber = clickedItem.getToothNumber();
+
+            // Skip if the tooth number is null or empty
+            if (toothNumber == null || toothNumber.isEmpty()) {
+                System.out.println("[DEBUG] Skipping item with null or empty tooth number");
+                return;
+            }
+
+            System.out.println("[DEBUG] Selecting all items with tooth number: " + toothNumber);
+
+            // Clear previous selection
+            listView.getSelectionModel().clearSelection();
+
+            // Select all items with the same tooth number
+            for (int i = 1; i < listView.getItems().size(); i++) { // Start from 1 to skip header
+                TreatmentPlanProcedure item = listView.getItems().get(i);
+                if (toothNumber.equals(item.getToothNumber())) {
+                    listView.getSelectionModel().select(i);
+                    System.out.println("[DEBUG] Selected item at index " + i + " with tooth number " + toothNumber);
+                }
+            }
+
+            // Consume the event to prevent default handling
+            event.consume();
+        }
     }
 
     /**
@@ -828,5 +1119,47 @@ public class ControllerMain extends ControllerOld {
 
         event.setDropCompleted(success);
         event.consume();
+    }
+
+    /**
+     * Adjusts the font size of a label based on the length of the text.
+     * This ensures that long names will fit within the label's width.
+     * 
+     * @param label The label to adjust
+     * @param text The text in the label
+     */
+    private void adjustLabelFontSize(Label label, String text) {
+        // Base font size
+        double baseFontSize = 20.0;
+
+        // Get the label width
+        double labelWidth = label.getPrefWidth();
+
+        // Calculate a font size based on text length
+        // This is a simple heuristic - adjust as needed
+        double fontSize = baseFontSize;
+
+        // Reduce font size for longer text
+        if (text.length() > 20) {
+            fontSize = Math.max(12.0, baseFontSize - (text.length() - 20) * 0.5);
+        }
+
+        // Apply the font size
+        label.setStyle("-fx-font-size: " + fontSize + "px; -fx-text-overrun: ellipsis; -fx-text-alignment: center;");
+
+        System.out.println("Adjusted font size for '" + text + "' to " + fontSize + "px");
+    }
+
+    /**
+     * Escapes special characters in SQL strings to prevent SQL injection.
+     * 
+     * @param input The input string to escape
+     * @return The escaped string
+     */
+    private String escapeSql(String input) {
+        if (input == null) {
+            return "";
+        }
+        return input.replace("'", "''");
     }
 }
