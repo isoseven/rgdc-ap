@@ -1,7 +1,4 @@
-,D0232,Snap on Smile - Maxillary
-1,D0120,periodic oral evaluation - established patient
-1A,D4211,gingivectomy or gingivoplasty - one to three contiguous teeth or tooth bounded spaces per quadrant (Teeth: 25,9,24,10)
-1B,D6056,prefabricated abutment – includes modification and placement
-1B,D2740,crown - porcelain/ceramic
-Next,D6010,surgical placement of implant body: endosteal implant
-next,D3347,retreatment of previous root canal therapy - premolar
+1,D1110,1,2,3,4,5,6,7,8
+10,D2393,1,16,15,14,2,3
+2,D3347,26,8,24,10,22
+4,,19,18,31,30

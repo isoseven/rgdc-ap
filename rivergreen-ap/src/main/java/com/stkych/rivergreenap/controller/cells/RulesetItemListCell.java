@@ -1,6 +1,7 @@
 package com.stkych.rivergreenap.controller.cells;
 
 import com.stkych.rivergreenap.model.RulesetItem;
+import com.stkych.rivergreenap.util.TeethNotationUtil;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
@@ -61,24 +62,14 @@ public class RulesetItemListCell extends ListCell<RulesetItem> {
             priorityLabel.setText(item.getPriority());
             procedureCodeLabel.setText(item.getProcedureCode());
 
-            // Extract teeth and diagnosis information from the description
+            // Use the teeth numbers property and convert to shorthand if possible
+            String teethNumbers = item.getTeethNumbers();
+            String teethDisplay = TeethNotationUtil.toShorthand(teethNumbers);
+            teethLabel.setText(teethDisplay);
+
+            // Set the diagnosis and description
             String description = item.getDescription();
-            String teeth = "";
-            String diagnosis = description;
-
-            // If the description contains teeth information, extract it
-            if (description != null && description.contains("(Teeth: ")) {
-                int start = description.indexOf("(Teeth: ") + 8;
-                int end = description.indexOf(")", start);
-                if (end > start) {
-                    teeth = description.substring(start, end);
-                    // The diagnosis is the text before the teeth information
-                    diagnosis = description.substring(0, description.indexOf("(Teeth: ")).trim();
-                }
-            }
-
-            teethLabel.setText(teeth);
-            diagnosisLabel.setText(diagnosis);
+            diagnosisLabel.setText(item.getProcedureCode()); // Use procedure code as diagnosis for now
             descriptionLabel.setText(description);
 
             // Set the graphic to the gridPane

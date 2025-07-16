@@ -47,9 +47,6 @@ public class ControllerRuleset implements Initializable {
     @FXML
     private Button okButton;
 
-    @FXML
-    private Button cancelButton;
-
     private ObservableList<RulesetItem> rulesetItems = FXCollections.observableArrayList();
     private Map<String, List<RulesetItem>> rulesets = new HashMap<>();
     private String currentRuleset = "A";
@@ -67,18 +64,37 @@ public class ControllerRuleset implements Initializable {
         listView.setCellFactory(new RulesetItemCellFactory());
         listView.setItems(rulesetItems);
 
-        // Set up the ruleset selection menu
-        setupRulesetSelectMenu();
-
         // Set up the button handlers
         setupButtonHandlers();
 
         // Load the initial ruleset data
         loadRulesets();
+
+        // Set up the ruleset selection menu
+        setupRulesetSelectMenu();
+
+        // Load the selected ruleset
         loadRuleset(currentRuleset);
 
         // Update the window title
         patientNameLabel.setText("Ruleset Configuration");
+
+        // Add a listener to check for the refresh flag when the window regains focus
+        Stage stage = (Stage) listView.getScene().getWindow();
+        stage.focusedProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue) { // When the window regains focus
+                Boolean refreshFlag = (Boolean) SceneSwitcher.getData("refreshRulesetWindow");
+                if (refreshFlag != null && refreshFlag) {
+                    // Refresh the ruleset window
+                    loadRulesets();
+                    setupRulesetSelectMenu();
+                    loadRuleset(currentRuleset);
+
+                    // Clear the flag
+                    SceneSwitcher.removeData("refreshRulesetWindow");
+                }
+            }
+        });
     }
 
     /**
@@ -88,26 +104,32 @@ public class ControllerRuleset implements Initializable {
     private void setupRulesetSelectMenu() {
         rulesetSelectMenuButton.getItems().clear();
 
-        // Add menu items for the default rulesets
-        MenuItem itemA = new MenuItem("Ruleset A");
-        MenuItem itemB = new MenuItem("Ruleset B");
+        // Add menu items for all available rulesets
+        for (String rulesetName : rulesets.keySet()) {
+            MenuItem item = new MenuItem("Ruleset " + rulesetName);
 
-        // Set up event handlers for the menu items
-        itemA.setOnAction(event -> {
-            currentRuleset = "A";
-            rulesetSelectMenuButton.setText("Ruleset A");
-            loadRuleset(currentRuleset);
-        });
+            // Set up event handler for the menu item
+            item.setOnAction(event -> {
+                currentRuleset = rulesetName;
+                rulesetSelectMenuButton.setText("Ruleset " + rulesetName);
+                loadRuleset(currentRuleset);
+            });
 
-        itemB.setOnAction(event -> {
-            currentRuleset = "B";
-            rulesetSelectMenuButton.setText("Ruleset B");
-            loadRuleset(currentRuleset);
-        });
+            // Add the menu item to the menu button
+            rulesetSelectMenuButton.getItems().add(item);
+        }
 
-        // Add the menu items to the menu button
-        rulesetSelectMenuButton.getItems().addAll(itemA, itemB);
-        rulesetSelectMenuButton.setText("Ruleset A");
+        // Set default text if there are rulesets
+        if (!rulesets.isEmpty()) {
+            // Use the first ruleset as the default
+            String firstRuleset = rulesets.keySet().iterator().next();
+            currentRuleset = firstRuleset;
+            rulesetSelectMenuButton.setText("Ruleset " + firstRuleset);
+            rulesetSelectMenuButton.setDisable(false);
+        } else {
+            rulesetSelectMenuButton.setText("No Rulesets Available");
+            rulesetSelectMenuButton.setDisable(true);
+        }
     }
 
     /**
@@ -126,9 +148,6 @@ public class ControllerRuleset implements Initializable {
 
         // OK button handler
         okButton.setOnAction(event -> handleOkButtonAction());
-
-        // Cancel button handler
-        cancelButton.setOnAction(event -> handleCancelButtonAction());
     }
 
     /**
@@ -190,7 +209,8 @@ public class ControllerRuleset implements Initializable {
                         procedureCode = controller.getProcedureCodeComboBox().getEditor().getText();
                     }
                     String description = controller.getDescriptionLabel().getText();
-                    return new RulesetItem(priority, procedureCode, description);
+                    String teethNumbers = controller.getSelectedTeethAsString();
+                    return new RulesetItem(priority, procedureCode, description, teethNumbers);
                 }
                 return null;
             });
@@ -209,102 +229,21 @@ public class ControllerRuleset implements Initializable {
 
     /**
      * Handles the edit button action.
-     * Shows a dialog to edit the selected ruleset item.
+     * Opens the ruleset configuration window as a popup.
      */
     @FXML
     private void handleEditButtonAction() {
-        // Get the selected item
-        RulesetItem selectedItem = listView.getSelectionModel().getSelectedItem();
-        if (selectedItem == null || listView.getSelectionModel().getSelectedIndex() == 0) {
-            // No item selected or header selected
-            return;
-        }
-
-        // Create a dialog to edit the ruleset item details
-        Dialog<RulesetItem> dialog = new Dialog<>();
-        dialog.setTitle("Edit Ruleset Item");
-        dialog.setHeaderText("Edit the details for the ruleset item");
-
-        // Set the button types
-        ButtonType okButtonType = new ButtonType("OK", ButtonBar.ButtonData.OK_DONE);
-        dialog.getDialogPane().getButtonTypes().addAll(okButtonType, ButtonType.CANCEL);
+        System.out.println("Edit Ruleset button clicked");
 
         try {
-            // Load the FXML file
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/stkych/rivergreenap/ruleset_dialog.fxml"));
-            Parent root = loader.load();
+            // Clear any existing refresh flag
+            SceneSwitcher.removeData("refreshRulesetWindow");
 
-            // Get the controller
-            RulesetDialogController controller = loader.getController();
-
-            // The controller now initializes its own UI components in the initialize method
-            // We just need to set the current values
-
-            // Set the current values
-            controller.getPriorityComboBox().setValue(selectedItem.getPriority());
-            controller.getProcedureCodeComboBox().setValue(selectedItem.getProcedureCode());
-
-            // Parse the teeth from the description if they exist
-            String description = selectedItem.getDescription();
-            if (description != null && description.contains("(Teeth: ")) {
-                int start = description.indexOf("(Teeth: ") + 8;
-                int end = description.indexOf(")", start);
-                if (end > start) {
-                    String teethString = description.substring(start, end);
-                    String[] teeth = teethString.split(",");
-
-                    // Select the teeth in the UI
-                    for (String tooth : teeth) {
-                        for (javafx.scene.Node node : controller.getTeethGridPane().getChildren()) {
-                            if (node instanceof CheckBox) {
-                                CheckBox checkBox = (CheckBox) node;
-                                if (String.valueOf(checkBox.getUserData()).equals(tooth.trim())) {
-                                    checkBox.setSelected(true);
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Set the content of the dialog
-            dialog.getDialogPane().setContent(root);
-
-            // Convert the result to a RulesetItem when the OK button is clicked
-            dialog.setResultConverter(dialogButton -> {
-                if (dialogButton == okButtonType) {
-                    String priority = controller.getPriority();
-                    String procedureCode = controller.getProcedureCode();
-                    String descriptionText = controller.getDescriptionLabel().getText().replace("Description: ", "");
-
-                    // Get the selected teeth as a comma-separated string
-                    String teethString = controller.getSelectedTeethAsString();
-
-                    // Create a new RulesetItem with the procedure code and priority
-                    // Store the teeth in the description field for now
-                    // In a real application, you would want to store this in a separate field
-                    String fullDescription = descriptionText;
-                    if (!teethString.isEmpty()) {
-                        fullDescription += " (Teeth: " + teethString + ")";
-                    }
-
-                    return new RulesetItem(priority, procedureCode, fullDescription);
-                }
-                return null;
-            });
+            // Show the popup
+            SceneSwitcher.showPopup("ruleset_config", "Ruleset Configuration", 600, 400);
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-        // Show the dialog and process the result
-        Optional<RulesetItem> result = dialog.showAndWait();
-        result.ifPresent(item -> {
-            int index = listView.getSelectionModel().getSelectedIndex();
-            rulesetItems.set(index, item);
-            sortRulesetItems();
-            saveRuleset(currentRuleset);
-        });
     }
 
     /**
@@ -348,18 +287,6 @@ public class ControllerRuleset implements Initializable {
         }
     }
 
-    /**
-     * Handles the cancel button action.
-     * Closes the window without saving changes.
-     */
-    @FXML
-    private void handleCancelButtonAction() {
-        try {
-            SceneSwitcher.switchScene("main", "RiverGreen AP");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
 
     /**
      * Handles the Select Patient menu item action.
@@ -458,6 +385,25 @@ public class ControllerRuleset implements Initializable {
     }
 
     /**
+     * Handles the Manage Rulesets menu item action.
+     * Opens the ruleset configuration window as a popup.
+     */
+    @FXML
+    private void handleManageRulesetsAction() {
+        System.out.println("Manage Rulesets menu item clicked");
+
+        try {
+            // Clear any existing refresh flag
+            SceneSwitcher.removeData("refreshRulesetWindow");
+
+            // Show the popup
+            SceneSwitcher.showPopup("ruleset_config", "Ruleset Configuration", 600, 400);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
      * Handles the About menu item action.
      * Shows information about the application.
      */
@@ -501,56 +447,31 @@ public class ControllerRuleset implements Initializable {
 
     /**
      * Loads all rulesets from CSV files.
-     * Creates default rulesets if the files don't exist.
+     * No longer creates default rulesets if none are found.
      */
     private void loadRulesets() {
-        // Load ruleset A
-        List<RulesetItem> rulesetA = loadRulesetFromFile("rulesetA.csv");
-        if (rulesetA.isEmpty()) {
-            // Create a default ruleset A
-            rulesetA.add(new RulesetItem("Header", "Header", "Description"));
+        // Clear existing rulesets
+        rulesets.clear();
 
-            // Try to get descriptions from the database
-            String description1 = "";
-            String description2 = "";
-            String description3 = "";
-            try {
-                description1 = RiverGreenDB.getProcedureCodeDescription("D2140");
-                description2 = RiverGreenDB.getProcedureCodeDescription("D2150");
-                description3 = RiverGreenDB.getProcedureCodeDescription("D2160");
-            } catch (SQLException e) {
-                e.printStackTrace();
+        // Look for ruleset files
+        File currentDir = new File(".");
+        File[] files = currentDir.listFiles((dir, name) -> name.startsWith("ruleset") && name.endsWith(".csv"));
+
+        if (files != null) {
+            for (File file : files) {
+                String filename = file.getName();
+                // Extract the ruleset name (between "ruleset" and ".csv")
+                String rulesetName = filename.substring(7, filename.length() - 4);
+
+                // Load the ruleset
+                List<RulesetItem> rulesetItems = loadRulesetFromFile(filename);
+                if (!rulesetItems.isEmpty()) {
+                    rulesets.put(rulesetName, rulesetItems);
+                }
             }
-
-            rulesetA.add(new RulesetItem("1", "D2140", description1));
-            rulesetA.add(new RulesetItem("2", "D2150", description2));
-            rulesetA.add(new RulesetItem("3", "D2160", description3));
         }
-        rulesets.put("A", rulesetA);
 
-        // Load ruleset B
-        List<RulesetItem> rulesetB = loadRulesetFromFile("rulesetB.csv");
-        if (rulesetB.isEmpty()) {
-            // Create a default ruleset B
-            rulesetB.add(new RulesetItem("Header", "Header", "Description"));
-
-            // Try to get descriptions from the database
-            String description1 = "";
-            String description2 = "";
-            String description3 = "";
-            try {
-                description1 = RiverGreenDB.getProcedureCodeDescription("D2330");
-                description2 = RiverGreenDB.getProcedureCodeDescription("D2331");
-                description3 = RiverGreenDB.getProcedureCodeDescription("D2332");
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-
-            rulesetB.add(new RulesetItem("1", "D2330", description1));
-            rulesetB.add(new RulesetItem("2", "D2331", description2));
-            rulesetB.add(new RulesetItem("3", "D2332", description3));
-        }
-        rulesets.put("B", rulesetB);
+        // No longer creating default rulesets if none are found
     }
 
     /**
@@ -565,36 +486,91 @@ public class ControllerRuleset implements Initializable {
 
         if (!file.exists()) {
             // Add a header item
-            items.add(new RulesetItem("Header", "Header", "Description"));
+            items.add(new RulesetItem("Header", "Header", "Description", "Teeth"));
             return items;
         }
 
         try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
             // Add a header item
-            items.add(new RulesetItem("Header", "Header", "Description"));
+            items.add(new RulesetItem("Header", "Header", "Description", "Teeth"));
 
             String line;
             while ((line = reader.readLine()) != null) {
+                // Split by comma
                 String[] parts = line.split(",");
+
                 if (parts.length >= 2) {
                     String priority = parts[0];
                     String procedureCode = parts[1];
-                    String description = "";
+                    String teethNumbers = "";
+                    String diagnosis = "";
 
-                    // If the description is in the file, use it
-                    if (parts.length >= 3) {
-                        description = parts[2];
-                    } else {
-                        // Otherwise, try to fetch it from the database
-                        try {
-                            description = RiverGreenDB.getProcedureCodeDescription(procedureCode);
-                        } catch (SQLException e) {
-                            // If there's an error, use an empty description
-                            e.printStackTrace();
+                    // If there are more than 2 parts, the rest are teeth numbers and diagnosis
+                    if (parts.length > 2) {
+                        // Determine how many parts are for teeth numbers
+                        int diagnosisIndex = -1;
+
+                        // Look for a part that doesn't look like a tooth number (not a number)
+                        for (int i = 2; i < parts.length; i++) {
+                            try {
+                                Integer.parseInt(parts[i].trim());
+                            } catch (NumberFormatException e) {
+                                // This part is not a number, so it's the start of the diagnosis
+                                diagnosisIndex = i;
+                                break;
+                            }
+                        }
+
+                        // If we found a diagnosis part
+                        if (diagnosisIndex > 2) {
+                            // Teeth numbers are all parts from index 2 to diagnosisIndex-1
+                            StringBuilder teethBuilder = new StringBuilder();
+                            for (int i = 2; i < diagnosisIndex; i++) {
+                                if (i > 2) teethBuilder.append("-");
+                                teethBuilder.append(parts[i].trim());
+                            }
+                            teethNumbers = teethBuilder.toString();
+
+                            // Diagnosis is all parts from diagnosisIndex to the end
+                            StringBuilder diagnosisBuilder = new StringBuilder();
+                            for (int i = diagnosisIndex; i < parts.length; i++) {
+                                if (i > diagnosisIndex) diagnosisBuilder.append(",");
+                                diagnosisBuilder.append(parts[i].trim());
+                            }
+                            diagnosis = diagnosisBuilder.toString();
+                        } else if (diagnosisIndex == 2) {
+                            // No teeth numbers, just diagnosis
+                            StringBuilder diagnosisBuilder = new StringBuilder();
+                            for (int i = 2; i < parts.length; i++) {
+                                if (i > 2) diagnosisBuilder.append(",");
+                                diagnosisBuilder.append(parts[i].trim());
+                            }
+                            diagnosis = diagnosisBuilder.toString();
+                        } else {
+                            // All remaining parts are teeth numbers
+                            StringBuilder teethBuilder = new StringBuilder();
+                            for (int i = 2; i < parts.length; i++) {
+                                if (i > 2) teethBuilder.append("-");
+                                teethBuilder.append(parts[i].trim());
+                            }
+                            teethNumbers = teethBuilder.toString();
                         }
                     }
 
-                    items.add(new RulesetItem(priority, procedureCode, description));
+                    // Always fetch description from the database
+                    String description = "";
+                    try {
+                        description = RiverGreenDB.getProcedureCodeDescription(procedureCode);
+                    } catch (SQLException e) {
+                        // If there's an error, use an empty description
+                        e.printStackTrace();
+                    }
+
+                    RulesetItem item = new RulesetItem(priority, procedureCode, description, teethNumbers);
+                    if (!diagnosis.isEmpty()) {
+                        item.setDiagnosis(diagnosis);
+                    }
+                    items.add(item);
                 }
             }
         } catch (IOException e) {
@@ -611,7 +587,10 @@ public class ControllerRuleset implements Initializable {
      */
     private void loadRuleset(String rulesetName) {
         rulesetItems.clear();
-        rulesetItems.addAll(rulesets.get(rulesetName));
+        List<RulesetItem> ruleset = rulesets.get(rulesetName);
+        if (ruleset != null) {
+            rulesetItems.addAll(ruleset);
+        }
     }
 
     /**
@@ -626,7 +605,27 @@ public class ControllerRuleset implements Initializable {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
             for (int i = 1; i < rulesetItems.size(); i++) {
                 RulesetItem item = rulesetItems.get(i);
-                writer.write(item.getPriority() + "," + item.getProcedureCode() + "," + item.getDescription());
+                // Write priority, procedure code, teeth numbers, and diagnosis (not description)
+                // Use comma as delimiter
+                StringBuilder line = new StringBuilder();
+                line.append(item.getPriority()).append(",");
+                line.append(item.getProcedureCode());
+
+                // Add teeth numbers if present
+                String teethNumbers = item.getTeethNumbers();
+                if (teethNumbers != null && !teethNumbers.isEmpty()) {
+                    // Replace commas with hyphens in teeth numbers
+                    String formattedTeethNumbers = teethNumbers.replace(",", "-");
+                    line.append(",").append(formattedTeethNumbers);
+                }
+
+                // Add diagnosis if present
+                String diagnosis = item.getDiagnosis();
+                if (diagnosis != null && !diagnosis.isEmpty()) {
+                    line.append(",").append(diagnosis);
+                }
+
+                writer.write(line.toString());
                 writer.newLine();
             }
         } catch (IOException e) {
@@ -650,7 +649,7 @@ public class ControllerRuleset implements Initializable {
 
         // Clear the items and add the header and sorted items
         rulesetItems.clear();
-        rulesetItems.add(new RulesetItem("Header", "Header", "Description"));
+        rulesetItems.add(new RulesetItem("Header", "Header", "Description", "Teeth"));
         rulesetItems.addAll(itemsWithoutHeader);
     }
 

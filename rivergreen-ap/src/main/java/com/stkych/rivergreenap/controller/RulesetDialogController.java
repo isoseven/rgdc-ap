@@ -282,12 +282,12 @@ public class RulesetDialogController implements Initializable {
     }
 
     /**
-     * Gets the selected teeth as a comma-separated string.
+     * Gets the selected teeth as a hyphen-separated string.
      *
-     * @return The selected teeth as a comma-separated string
+     * @return The selected teeth as a hyphen-separated string
      */
     public String getSelectedTeethAsString() {
-        return String.join(",", selectedTeeth);
+        return String.join("-", selectedTeeth);
     }
 
     /**

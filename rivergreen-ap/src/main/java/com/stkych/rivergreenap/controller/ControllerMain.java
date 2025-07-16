@@ -244,7 +244,10 @@ public class ControllerMain extends ControllerOld {
         // Create a new list to append to
         ObservableList<String> sortedPriorities = FXCollections.observableArrayList();
 
-        // Start by appending "None" if it's not already in the list
+        // Start by appending "N/A" as the first priority
+        sortedPriorities.add("N/A");
+
+        // Then append "None" if it's not already in the list
         if (!priorities.contains("None")) {
             sortedPriorities.add("None");
         }
@@ -555,32 +558,33 @@ public class ControllerMain extends ControllerOld {
 
     /**
      * Loads all rulesets from CSV files.
-     * Creates default rulesets if the files don't exist.
+     * No longer creates default rulesets if none are found.
      */
     private void loadRulesets() {
         System.out.println("Loading rulesets");
 
-        // Load ruleset A
-        List<RulesetItem> rulesetA = loadRulesetFromFile("rulesetA.csv");
-        if (rulesetA.isEmpty()) {
-            // Create a default ruleset A
-            rulesetA.add(new RulesetItem("Header", "Header"));
-            rulesetA.add(new RulesetItem("1", "D2140"));
-            rulesetA.add(new RulesetItem("2", "D2150"));
-            rulesetA.add(new RulesetItem("3", "D2160"));
-        }
-        rulesets.put("A", rulesetA);
+        // Clear existing rulesets
+        rulesets.clear();
 
-        // Load ruleset B
-        List<RulesetItem> rulesetB = loadRulesetFromFile("rulesetB.csv");
-        if (rulesetB.isEmpty()) {
-            // Create a default ruleset B
-            rulesetB.add(new RulesetItem("Header", "Header"));
-            rulesetB.add(new RulesetItem("1", "D2330"));
-            rulesetB.add(new RulesetItem("2", "D2331"));
-            rulesetB.add(new RulesetItem("3", "D2332"));
+        // Look for ruleset files
+        File currentDir = new File(".");
+        File[] files = currentDir.listFiles((dir, name) -> name.startsWith("ruleset") && name.endsWith(".csv"));
+
+        if (files != null) {
+            for (File file : files) {
+                String filename = file.getName();
+                // Extract the ruleset name (between "ruleset" and ".csv")
+                String rulesetName = filename.substring(7, filename.length() - 4);
+
+                // Load the ruleset
+                List<RulesetItem> rulesetItems = loadRulesetFromFile(filename);
+                if (!rulesetItems.isEmpty()) {
+                    rulesets.put(rulesetName, rulesetItems);
+                }
+            }
         }
-        rulesets.put("B", rulesetB);
+
+        // No longer creating default rulesets if none are found
 
         // Set up the ruleset selection menu
         setupRulesetSelectMenu();
@@ -633,26 +637,32 @@ public class ControllerMain extends ControllerOld {
 
         rulesetSelectMenuButton.getItems().clear();
 
-        // Add menu items for the default rulesets
-        javafx.scene.control.MenuItem itemA = new javafx.scene.control.MenuItem("Ruleset A");
-        javafx.scene.control.MenuItem itemB = new javafx.scene.control.MenuItem("Ruleset B");
+        // Add menu items for all available rulesets
+        for (String rulesetName : rulesets.keySet()) {
+            javafx.scene.control.MenuItem item = new javafx.scene.control.MenuItem("Ruleset " + rulesetName);
 
-        // Set up event handlers for the menu items
-        itemA.setOnAction(event -> {
-            currentRuleset = "A";
-            rulesetSelectMenuButton.setText("Ruleset A");
-            applyRuleset(currentRuleset);
-        });
+            // Set up event handler for the menu item
+            item.setOnAction(event -> {
+                currentRuleset = rulesetName;
+                rulesetSelectMenuButton.setText("Ruleset " + rulesetName);
+                applyRuleset(currentRuleset);
+            });
 
-        itemB.setOnAction(event -> {
-            currentRuleset = "B";
-            rulesetSelectMenuButton.setText("Ruleset B");
-            applyRuleset(currentRuleset);
-        });
+            // Add the menu item to the menu button
+            rulesetSelectMenuButton.getItems().add(item);
+        }
 
-        // Add the menu items to the menu button
-        rulesetSelectMenuButton.getItems().addAll(itemA, itemB);
-        rulesetSelectMenuButton.setText("Select Ruleset");
+        // Set default text if there are rulesets
+        if (!rulesets.isEmpty()) {
+            // Use the first ruleset as the default
+            String firstRuleset = rulesets.keySet().iterator().next();
+            currentRuleset = firstRuleset;
+            rulesetSelectMenuButton.setText("Ruleset " + firstRuleset);
+            rulesetSelectMenuButton.setDisable(false);
+        } else {
+            rulesetSelectMenuButton.setText("No Rulesets Available");
+            rulesetSelectMenuButton.setDisable(true);
+        }
     }
 
     /**
@@ -677,19 +687,20 @@ public class ControllerMain extends ControllerOld {
             RulesetItem item = ruleset.get(i);
             String procedureCode = item.getProcedureCode();
             String priority = item.getPriority();
-            String description = item.getDescription();
+            String diagnosis = item.getDiagnosis();
 
-            // Extract teeth information from the description if it exists
+            // If diagnosis is empty, use description as fallback
+            if (diagnosis == null || diagnosis.isEmpty()) {
+                diagnosis = item.getDescription();
+            }
+
+            // Get teeth information from the teethNumbers property
             List<String> ruleTeeth = new ArrayList<>();
-            if (description != null && description.contains("(Teeth: ")) {
-                int start = description.indexOf("(Teeth: ") + 8;
-                int end = description.indexOf(")", start);
-                if (end > start) {
-                    String teethString = description.substring(start, end);
-                    String[] teeth = teethString.split(",");
-                    for (String tooth : teeth) {
-                        ruleTeeth.add(tooth.trim());
-                    }
+            String teethNumbers = item.getTeethNumbers();
+            if (teethNumbers != null && !teethNumbers.isEmpty()) {
+                String[] teeth = teethNumbers.split(",");
+                for (String tooth : teeth) {
+                    ruleTeeth.add(tooth.trim());
                 }
             }
 
@@ -706,19 +717,19 @@ public class ControllerMain extends ControllerOld {
                             // Update priority and diagnosis if both procedure code and tooth match
                             procedure.setPriority(priority);
 
-                            // Extract diagnosis from the description if it exists
-                            // For now, we'll just use the description as the diagnosis
-                            String diagnosisText = description;
-                            if (diagnosisText != null && diagnosisText.contains("(Teeth: ")) {
-                                diagnosisText = diagnosisText.substring(0, diagnosisText.indexOf("(Teeth: ")).trim();
-                            }
-                            if (diagnosisText != null && !diagnosisText.isEmpty()) {
-                                procedure.setDiagnosis(diagnosisText);
+                            // Use the diagnosis property
+                            if (diagnosis != null && !diagnosis.isEmpty()) {
+                                procedure.setDiagnosis(diagnosis);
                             }
                         }
                     } else {
                         // If the rule doesn't specify teeth, update all procedures with matching code
                         procedure.setPriority(priority);
+
+                        // Also update diagnosis even if no teeth are specified
+                        if (diagnosis != null && !diagnosis.isEmpty()) {
+                            procedure.setDiagnosis(diagnosis);
+                        }
                     }
                 }
             }
