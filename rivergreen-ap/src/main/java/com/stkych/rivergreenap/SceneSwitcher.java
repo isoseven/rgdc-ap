@@ -15,7 +15,7 @@ import java.util.Map;
  * and supports passing data between scenes.
  */
 public class SceneSwitcher {
-    private static final String FXML_PATH = "/com/stkych/rivergreenap/2/";
+    private static final String FXML_PATH = "/com/stkych/rivergreenap/";
     private static Stage primaryStage;
     private static final Map<String, Object> dataCache = new HashMap<>();
 

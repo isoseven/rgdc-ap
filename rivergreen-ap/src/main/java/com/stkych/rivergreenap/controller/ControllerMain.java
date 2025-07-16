@@ -2,23 +2,29 @@ package com.stkych.rivergreenap.controller;
 
 import com.stkych.rivergreenap.RiverGreenDB;
 import com.stkych.rivergreenap.SceneSwitcher;
-import com.stkych.rivergreenap.controller.archive.ControllerOld;
+import com.stkych.rivergreenap.archive.controller.ControllerOld;
+import com.stkych.rivergreenap.controller.cells.TreatmentPlanProcedureCellFactory;
 import com.stkych.rivergreenap.model.RulesetItem;
 import com.stkych.rivergreenap.model.TreatmentPlanProcedure;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
+import javafx.geometry.Insets;
+import javafx.scene.control.*;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.MenuButton;
 import javafx.scene.control.SelectionMode;
+import javafx.scene.control.TextInputDialog;
 import javafx.scene.input.DataFormat;
 import javafx.scene.input.DragEvent;
 import javafx.scene.input.Dragboard;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.TransferMode;
+import javafx.scene.layout.GridPane;
+import javafx.stage.Stage;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -36,7 +42,7 @@ import java.util.Map;
 import java.util.ResourceBundle;
 
 /**
- * Controller for the news.fxml scene of the application.
+ * Controller for the main.fxml scene of the application.
  * This is an iteration of the MainController with UI changes.
  */
 public class ControllerMain extends ControllerOld {
@@ -60,23 +66,15 @@ public class ControllerMain extends ControllerOld {
     private ListView<String> diagnosisListView;
 
     @FXML
-    private CheckBox CheckboxCopy;
-
-    @FXML
-    private CheckBox CheckboxOverride;
-
-    @FXML
     private Label patientNameLabel;
 
-    @FXML
-    private MenuButton doctorSelectMenuButton;
 
     @FXML
     private MenuButton rulesetSelectMenuButton;
 
     private ObservableList<TreatmentPlanProcedure> procedures = FXCollections.observableArrayList();
 
-    private Map<String, List<RulesetItem>> rulesets = new HashMap<>();
+    private final Map<String, List<RulesetItem>> rulesets = new HashMap<>();
     private String currentRuleset = "";
 
     /**
@@ -245,8 +243,15 @@ public class ControllerMain extends ControllerOld {
     private void sortPriorities(ObservableList<String> priorities) {
         // Create a new list to append to
         ObservableList<String> sortedPriorities = FXCollections.observableArrayList();
-        // Start by appending "Next"
+
+        // Start by appending "None" if it's not already in the list
+        if (!priorities.contains("None")) {
+            sortedPriorities.add("None");
+        }
+
+        // Then append "Next"
         sortedPriorities.add("Next");
+
         // Add all numbered priorities
         for (int i = 1; i <= 10; i++) {
             sortedPriorities.add(String.valueOf(i));
@@ -256,6 +261,7 @@ public class ControllerMain extends ControllerOld {
             sortedPriorities.add(i + " Wait");
             sortedPriorities.add(i + " Decline");
         }
+
         // Put all other priorities in
         for (String priority : priorities) {
             if (!sortedPriorities.contains(priority)) {
@@ -336,17 +342,7 @@ public class ControllerMain extends ControllerOld {
             return;
         }
 
-        // Check if we should create a new treatment plan
-        boolean createNewTreatmentPlan = CheckboxCopy.isSelected();
-        System.out.println("Create new treatment plan: " + createNewTreatmentPlan);
-
-        if (createNewTreatmentPlan) {
-            // Create a new treatment plan and update procedures
-            createNewTreatmentPlan(patientNumber, allProcedures);
-        } else {
-            // Use the existing behavior to update procedures
-            updateExistingTreatmentPlan(patientNumber, allProcedures);
-        }
+        updateExistingTreatmentPlan(patientNumber, allProcedures);
     }
 
     /**
@@ -387,205 +383,6 @@ public class ControllerMain extends ControllerOld {
     }
 
     /**
-     * Creates a new treatment plan and updates procedures.
-     * This method:
-     * 1. Makes the current active treatment plan inactive (TPStatus = 0)
-     * 2. Creates a new treatment plan with TPStatus = 1
-     * 3. Inserts into treatplanattach with the values already established
-     * 
-     * @param patientNumber The patient number
-     * @param allProcedures The list of procedures to update
-     */
-    private void createNewTreatmentPlan(int patientNumber, List<TreatmentPlanProcedure> allProcedures) {
-        Connection conn = null;
-        Statement stmt = null;
-        List<String> sqlQueries = new ArrayList<>();
-        List<String> errorMessages = new ArrayList<>();
-        int successCount = 0;
-        int failureCount = 0;
-
-        try {
-            // Get a database connection
-            conn = RiverGreenDB.getConnection();
-            conn.setAutoCommit(false); // Start transaction
-            stmt = conn.createStatement();
-
-            // 1. Make the current active treatment plan inactive (TPStatus = 0)
-            String deactivateQuery = "UPDATE treatplan SET TPStatus = 0 WHERE PatNum = " + patientNumber + " AND TPStatus = 1";
-            sqlQueries.add(deactivateQuery);
-            System.out.println("Deactivating current treatment plan: " + deactivateQuery);
-            stmt.executeUpdate(deactivateQuery);
-
-            // 2. Create a new treatment plan with TPStatus = 1
-            String createTreatplanQuery = "INSERT INTO treatplan (PatNum,DateTP,Heading,Note,Signature,SigIsTopaz,ResponsParty,DocNum,TPStatus,SecUserNumEntry,SecDateEntry,UserNumPresenter,TPType,SignaturePractice,DateTSigned,DateTPracticeSigned,SignatureText,SignaturePracticeText,MobileAppDeviceNum) " +
-                    "VALUES(" + patientNumber + ",CURDATE(),'Active Treatment Plan','As a courtesy to our patients we will file your insurance. Please be ware that THIS IS ESTIMATE ONLY. If your insurance does not pay the claim within 90 days the balance will be billed to you. We do our very best to ESTIMATE what your insurance will pay but cannot guarantee the amout that they will approve. This ESTIMATE is valid for 90 days from the above date. I understand that during treatment it may be necessary to change or add procedures because of conditions found while working on the teeth that were not discovered during examination. I give my permission to the Dentist to make any/all changes and additions as necessary.\\nWe appreciate any referrals.\\nThank You For Choosing Us For Your Dental Needs.\\nDr. B.J. Lee\\nDr. Jong Lee\\n\\nPatient Or Guardian Signature______________________________','',0,0,0,1,4,NOW(),0,0,'','0001-01-01 00:00:00','0001-01-01 00:00:00','','',0)";
-            sqlQueries.add(createTreatplanQuery);
-            System.out.println("Creating new treatment plan: " + createTreatplanQuery);
-            stmt.executeUpdate(createTreatplanQuery);
-
-            // Get the newly created treatment plan number
-            String getTreatPlanNumQuery = "SELECT TreatPlanNum FROM treatplan WHERE PatNum = " + patientNumber + " AND TPStatus = 1 ORDER BY TreatPlanNum DESC LIMIT 1";
-            ResultSet rs = stmt.executeQuery(getTreatPlanNumQuery);
-            int treatPlanNum = 0;
-            if (rs.next()) {
-                treatPlanNum = rs.getInt("TreatPlanNum");
-                System.out.println("New treatment plan number: " + treatPlanNum);
-            } else {
-                throw new SQLException("Failed to get new treatment plan number");
-            }
-            rs.close();
-
-            // 3. For each procedure, create a new procedure record and link it to the new treatment plan
-            for (TreatmentPlanProcedure procedure : allProcedures) {
-                // Get the values from the procedure
-                String priorityName = procedure.getPriority();
-                String toothNum = procedure.getToothNumber();
-                String surface = procedure.getSurface();
-                String procCode = procedure.getProcedureCode();
-                String diagnosis = procedure.getDiagnosis();
-                double fee = procedure.getFee();
-
-                // Get the priority DefNum
-                int priorityDefNum = 0;
-                if (priorityName != null && !priorityName.isEmpty() && !priorityName.equals("None")) {
-                    // Escape the priority name to prevent SQL injection
-                    String escapedPriorityName = escapeSql(priorityName);
-                    String getPriorityDefNumQuery = "SELECT DefNum FROM definition WHERE ItemName = '" + escapedPriorityName + "' AND Category = 20 LIMIT 1";
-                    ResultSet priorityRs = stmt.executeQuery(getPriorityDefNumQuery);
-                    if (priorityRs.next()) {
-                        priorityDefNum = priorityRs.getInt("DefNum");
-                    }
-                    priorityRs.close();
-                }
-
-                // Get the diagnosis DefNum
-                int diagnosisDefNum = 0;
-                if (diagnosis != null && !diagnosis.isEmpty() && !diagnosis.equals("No diagnosis")) {
-                    // Escape the diagnosis name to prevent SQL injection
-                    String escapedDiagnosis = escapeSql(diagnosis);
-                    String getDiagnosisDefNumQuery = "SELECT DefNum FROM definition WHERE ItemName = '" + escapedDiagnosis + "' AND Category = 16 LIMIT 1";
-                    ResultSet diagnosisRs = stmt.executeQuery(getDiagnosisDefNumQuery);
-                    if (diagnosisRs.next()) {
-                        diagnosisDefNum = diagnosisRs.getInt("DefNum");
-                    }
-                    diagnosisRs.close();
-                }
-
-                // Get the CodeNum from the procedurecode table
-                int codeNum = 0;
-                if (procCode != null && !procCode.isEmpty()) {
-                    // Escape the procedure code to prevent SQL injection
-                    String escapedProcCode = escapeSql(procCode);
-                    String getCodeNumQuery = "SELECT CodeNum FROM procedurecode WHERE ProcCode = '" + escapedProcCode + "' LIMIT 1";
-                    ResultSet codeNumRs = stmt.executeQuery(getCodeNumQuery);
-                    if (codeNumRs.next()) {
-                        codeNum = codeNumRs.getInt("CodeNum");
-                    }
-                    codeNumRs.close();
-                }
-
-                // Create a new procedure record in the procedurelog table
-                StringBuilder insertProcedureQuery = new StringBuilder();
-                insertProcedureQuery.append("INSERT INTO procedurelog (PatNum, ToothNum, Surf, CodeNum, Priority, Dx, ProcFee) VALUES (");
-                insertProcedureQuery.append(patientNumber).append(", ");
-
-                // Handle null or empty values
-                if (toothNum != null && !toothNum.isEmpty()) {
-                    insertProcedureQuery.append("'").append(escapeSql(toothNum)).append("', ");
-                } else {
-                    insertProcedureQuery.append("NULL, ");
-                }
-
-                if (surface != null && !surface.isEmpty()) {
-                    insertProcedureQuery.append("'").append(escapeSql(surface)).append("', ");
-                } else {
-                    insertProcedureQuery.append("NULL, ");
-                }
-
-                insertProcedureQuery.append(codeNum).append(", ");
-                insertProcedureQuery.append(priorityDefNum).append(", ");
-                insertProcedureQuery.append(diagnosisDefNum).append(", ");
-                insertProcedureQuery.append(fee).append(")");
-
-                String finalInsertProcedureQuery = insertProcedureQuery.toString();
-                sqlQueries.add(finalInsertProcedureQuery);
-                System.out.println("Creating new procedure: " + finalInsertProcedureQuery);
-                stmt.executeUpdate(finalInsertProcedureQuery, Statement.RETURN_GENERATED_KEYS);
-
-                // Get the newly created procedure number
-                ResultSet generatedKeys = stmt.getGeneratedKeys();
-                int newProcNum = 0;
-                if (generatedKeys.next()) {
-                    newProcNum = generatedKeys.getInt(1);
-                    System.out.println("New procedure number: " + newProcNum);
-                } else {
-                    throw new SQLException("Failed to get new procedure number");
-                }
-                generatedKeys.close();
-
-                // Insert into treatplanattach with the new procedure number
-                String insertTreatplanAttachQuery = "INSERT INTO treatplanattach (TreatPlanNum, ProcNum, Priority) VALUES (" + treatPlanNum + ", " + newProcNum + ", " + priorityDefNum + ")";
-                sqlQueries.add(insertTreatplanAttachQuery);
-                System.out.println("Inserting into treatplanattach: " + insertTreatplanAttachQuery);
-                stmt.executeUpdate(insertTreatplanAttachQuery);
-            }
-
-            // Commit the transaction
-            conn.commit();
-            successCount = sqlQueries.size();
-            System.out.println("Transaction committed successfully");
-
-        } catch (SQLException e) {
-            // Roll back the transaction if an error occurs
-            if (conn != null) {
-                try {
-                    conn.rollback();
-                    System.out.println("Transaction rolled back due to error: " + e.getMessage());
-                } catch (SQLException ex) {
-                    System.out.println("Error rolling back transaction: " + ex.getMessage());
-                }
-            }
-            failureCount = sqlQueries.size();
-            errorMessages.add("Database error: " + e.getMessage());
-            System.out.println("Error creating new treatment plan: " + e.getMessage());
-        } finally {
-            // Close resources
-            if (stmt != null) {
-                try {
-                    stmt.close();
-                } catch (SQLException e) {
-                    System.out.println("Error closing statement: " + e.getMessage());
-                }
-            }
-            if (conn != null) {
-                try {
-                    conn.setAutoCommit(true); // Reset auto-commit
-                    conn.close();
-                } catch (SQLException e) {
-                    System.out.println("Error closing connection: " + e.getMessage());
-                }
-            }
-        }
-
-        // Print summary
-        System.out.println("\nExecution summary for Patient #" + patientNumber + ":");
-        System.out.println("Status: " + (failureCount == 0 ? "success" : "error"));
-        System.out.println("Total queries: " + sqlQueries.size());
-        System.out.println("Successful: " + successCount);
-        System.out.println("Failed: " + failureCount);
-
-        if (!errorMessages.isEmpty()) {
-            System.out.println("\nError details:");
-            for (String error : errorMessages) {
-                System.out.println("- " + error);
-            }
-        }
-
-        // Store the queries in the data cache for potential future use
-        SceneSwitcher.putData("pendingSqlQueries", sqlQueries);
-    }
-
-    /**
      * Handles the action event triggered by the "Cancel" button.
      * Navigates back to the main scene.
      */
@@ -607,10 +404,153 @@ public class ControllerMain extends ControllerOld {
     private void handleRulesetButtonAction() {
         System.out.println("Ruleset button clicked");
         try {
-            SceneSwitcher.switchScene("dredit", "Ruleset Configuration");
+            SceneSwitcher.switchScene("ruleset", "Ruleset Configuration");
         } catch (IOException e) {
             handleError(e);
         }
+    }
+
+    /**
+     * Handles the Select Patient menu item action.
+     * Opens a dialog to enter a patient number and reloads the application with that patient.
+     */
+    @FXML
+    private void handleSelectPatientAction() {
+        System.out.println("Select Patient menu item clicked");
+
+        // Create a dialog to enter patient number
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.setTitle("Select Patient");
+        dialog.setHeaderText("Enter Patient Number");
+        dialog.setContentText("Patient ID:");
+
+        // Show the dialog and wait for a response
+        dialog.showAndWait().ifPresent(patientIdStr -> {
+            try {
+                // Parse the patient number
+                int patientNumber = Integer.parseInt(patientIdStr);
+
+                // Store the new patient number in the data cache
+                SceneSwitcher.putData("patientNumber", patientNumber);
+
+                // Reload the main scene with the new patient number
+                SceneSwitcher.switchScene("main", "RiverGreen Dental Application");
+
+            } catch (NumberFormatException e) {
+                // Show an error if the input is not a valid number
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setTitle("Error");
+                alert.setHeaderText("Invalid Patient Number");
+                alert.setContentText("Please enter a valid patient number.");
+                alert.showAndWait();
+            } catch (IOException e) {
+                handleError(e);
+            }
+        });
+    }
+
+    /**
+     * Handles the Reset menu item action.
+     * Resets all priorities and diagnosis.
+     */
+    @FXML
+    private void handleResetAction() {
+        System.out.println("Reset menu item clicked");
+
+        // Confirm before resetting
+        Alert confirmAlert = new Alert(Alert.AlertType.CONFIRMATION);
+        confirmAlert.setTitle("Confirm Reset");
+        confirmAlert.setHeaderText("Reset All Priorities and Diagnosis");
+        confirmAlert.setContentText("Are you sure you want to reset all priorities and diagnosis? This action cannot be undone.");
+
+        confirmAlert.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.OK) {
+                // Get the patient number from the data cache
+                Integer patientNumber = (Integer) SceneSwitcher.getData("patientNumber");
+                if (patientNumber == null) {
+                    System.out.println("No patient number found. Cannot reset procedures.");
+                    return;
+                }
+
+                try {
+                    // Reload procedures for the patient (this will reset to the original state)
+                    loadProceduresForPatient(patientNumber);
+
+                    // Clear the priority and diagnosis list views
+                    priorityListView.getItems().clear();
+                    diagnosisListView.getItems().clear();
+
+                    // Reinitialize the list views
+                    setupPriorityListView();
+                    setupDiagnosisListView();
+
+                    // Show success message
+                    Alert successAlert = new Alert(Alert.AlertType.INFORMATION);
+                    successAlert.setTitle("Reset Complete");
+                    successAlert.setHeaderText(null);
+                    successAlert.setContentText("All priorities and diagnosis have been reset.");
+                    successAlert.showAndWait();
+
+                } catch (SQLException e) {
+                    handleError(e);
+                }
+            }
+        });
+    }
+
+    /**
+     * Handles the Close menu item action.
+     * Closes the current window.
+     */
+    @FXML
+    private void handleCloseAction() {
+        System.out.println("Close menu item clicked");
+
+        // Get the current stage and close it
+        Stage stage = (Stage) listView.getScene().getWindow();
+        stage.close();
+    }
+
+    /**
+     * Handles the About menu item action.
+     * Shows information about the application.
+     */
+    @FXML
+    private void handleAboutAction() {
+        System.out.println("About menu item clicked");
+
+        // Create an alert dialog
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("About RiverGreen Dental Application");
+        alert.setHeaderText("RiverGreen Dental Application");
+        alert.setContentText("Version 1.0\n\nA dental treatment planning application for automating procedure priorities.");
+
+        // Add more detailed information in an expandable area
+        Label label = new Label("Additional Information:");
+        TextArea textArea = new TextArea(
+            "RiverGreen Dental Application\n" +
+            "Version 1.0\n\n" +
+            "This application helps dental professionals manage treatment plans by automatically prioritizing procedures based on configurable rulesets.\n\n" +
+            "Features:\n" +
+            "- Patient-specific treatment plans\n" +
+            "- Configurable priority rulesets\n" +
+            "- Drag-and-drop procedure reordering\n" +
+            "- Database integration\n\n" +
+            "© 2025 RiverGreen Dental"
+        );
+        textArea.setEditable(false);
+        textArea.setWrapText(true);
+        textArea.setPrefHeight(200);
+
+        GridPane expContent = new GridPane();
+        expContent.setMaxWidth(Double.MAX_VALUE);
+        expContent.add(label, 0, 0);
+        expContent.add(textArea, 0, 1);
+
+        alert.getDialogPane().setExpandableContent(expContent);
+        alert.getDialogPane().setExpanded(true);
+
+        alert.showAndWait();
     }
 
     /**
@@ -674,6 +614,7 @@ public class ControllerMain extends ControllerOld {
                 }
             }
         } catch (IOException e) {
+            System.out.println("Error loading ruleset from file " + filename + ": " + e.getMessage());
             e.printStackTrace();
         }
 
@@ -716,7 +657,8 @@ public class ControllerMain extends ControllerOld {
 
     /**
      * Applies the selected ruleset to the procedures list.
-     * Updates the priorities of the procedures based on the ruleset.
+     * Updates the priorities and diagnoses of the procedures based on the ruleset.
+     * Takes into account both procedure code and teeth information.
      *
      * @param rulesetName The name of the ruleset to apply
      */
@@ -735,17 +677,54 @@ public class ControllerMain extends ControllerOld {
             RulesetItem item = ruleset.get(i);
             String procedureCode = item.getProcedureCode();
             String priority = item.getPriority();
+            String description = item.getDescription();
 
-            // Update the priority of all procedures with matching procedure code
+            // Extract teeth information from the description if it exists
+            List<String> ruleTeeth = new ArrayList<>();
+            if (description != null && description.contains("(Teeth: ")) {
+                int start = description.indexOf("(Teeth: ") + 8;
+                int end = description.indexOf(")", start);
+                if (end > start) {
+                    String teethString = description.substring(start, end);
+                    String[] teeth = teethString.split(",");
+                    for (String tooth : teeth) {
+                        ruleTeeth.add(tooth.trim());
+                    }
+                }
+            }
+
+            // Update the priority and diagnosis of procedures with matching procedure code and teeth
             for (int j = 1; j < procedures.size(); j++) { // Skip the header item (index 0)
                 TreatmentPlanProcedure procedure = procedures.get(j);
+
+                // Check if procedure code matches
                 if (procedure.getProcedureCode().equals(procedureCode)) {
-                    procedure.setPriority(priority);
+                    // If the rule has teeth specified, check if the procedure's tooth matches any of them
+                    if (!ruleTeeth.isEmpty()) {
+                        String procedureTooth = procedure.getToothNumber();
+                        if (procedureTooth != null && !procedureTooth.isEmpty() && ruleTeeth.contains(procedureTooth)) {
+                            // Update priority and diagnosis if both procedure code and tooth match
+                            procedure.setPriority(priority);
+
+                            // Extract diagnosis from the description if it exists
+                            // For now, we'll just use the description as the diagnosis
+                            String diagnosisText = description;
+                            if (diagnosisText != null && diagnosisText.contains("(Teeth: ")) {
+                                diagnosisText = diagnosisText.substring(0, diagnosisText.indexOf("(Teeth: ")).trim();
+                            }
+                            if (diagnosisText != null && !diagnosisText.isEmpty()) {
+                                procedure.setDiagnosis(diagnosisText);
+                            }
+                        }
+                    } else {
+                        // If the rule doesn't specify teeth, update all procedures with matching code
+                        procedure.setPriority(priority);
+                    }
                 }
             }
         }
 
-        // Refresh the list view to show the updated priorities
+        // Refresh the list view to show the updated priorities and diagnoses
         listView.refresh();
     }
 
@@ -781,7 +760,7 @@ public class ControllerMain extends ControllerOld {
         }
 
         // If we found a ListCell, get its index
-        if (node instanceof javafx.scene.control.ListCell) {
+        if (node != null) {
             javafx.scene.control.ListCell<?> cell = (javafx.scene.control.ListCell<?>) node;
             return cell.getIndex();
         }
@@ -925,9 +904,6 @@ public class ControllerMain extends ControllerOld {
         // Ensure the current index is within bounds
         int originalIndex = currentIndex;
         currentIndex = Math.max(0, Math.min(currentIndex, listView.getItems().size() - 1));
-
-        // Store the current selection
-        List<Integer> currentSelection = new ArrayList<>(listView.getSelectionModel().getSelectedIndices());
 
         // Clear previous selection
         listView.getSelectionModel().clearSelection();

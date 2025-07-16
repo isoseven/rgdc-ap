@@ -177,7 +177,10 @@ public class RiverGreenDB {
      */
     public static ObservableList<String> getAllPrioritiesObservable() throws SQLException {
         List<String> priorities = getAllPriorities();
-        return FXCollections.observableArrayList(priorities);
+        ObservableList<String> observablePriorities = FXCollections.observableArrayList();
+        observablePriorities.add("None");
+        observablePriorities.addAll(priorities);
+        return observablePriorities;
     }
 
     /**
@@ -221,7 +224,10 @@ public class RiverGreenDB {
      */
     public static ObservableList<String> getAllDiagnosesObservable() throws SQLException {
         List<String> diagnoses = getAllDiagnoses();
-        return FXCollections.observableArrayList(diagnoses);
+        ObservableList<String> observableDiagnoses = FXCollections.observableArrayList();
+        observableDiagnoses.add("None");
+        observableDiagnoses.addAll(diagnoses);
+        return observableDiagnoses;
     }
 
     /**
@@ -559,5 +565,81 @@ private static String determineStatus(int successCount, int failureCount) {
     if (failureCount == 0) return "success";
     if (successCount > 0) return "partial_success";
     return "failure";
+}
+
+/**
+ * Retrieves the description for a specific procedure code.
+ *
+ * @param procedureCode The procedure code to get the description for
+ * @return The description of the procedure code, or an empty string if not found
+ * @throws SQLException If a database error occurs
+ */
+public static String getProcedureCodeDescription(String procedureCode) throws SQLException {
+    if (procedureCode == null || procedureCode.isEmpty()) {
+        return "";
+    }
+
+    String description = "";
+    String sql = "SELECT Descript FROM procedurecode WHERE ProcCode = ?";
+
+    try (Connection conn = getConnection();
+         PreparedStatement stmt = conn.prepareStatement(sql)) {
+        stmt.setString(1, procedureCode);
+        try (ResultSet rs = stmt.executeQuery()) {
+            if (rs.next()) {
+                description = rs.getString("Descript");
+                if (description == null) {
+                    description = "";
+                }
+            }
+        }
+    }
+
+    return description;
+}
+
+/**
+ * Retrieves all dental procedure codes from the database.
+ * This method queries the procedurecode table for all procedure codes.
+ *
+ * @return A list of procedure codes
+ * @throws SQLException If a database error occurs
+ */
+public static @NotNull List<String> getAllProcedureCodes() throws SQLException {
+    // Create a list to hold the procedure codes
+    List<String> procedureCodes = new ArrayList<>();
+
+    // SQL Query to retrieve all procedure codes from the procedurecode table
+    String sql = "SELECT ProcCode FROM procedurecode ORDER BY ProcCode";
+
+    // Execute the query
+    try (Connection conn = getConnection();
+         PreparedStatement stmt = conn.prepareStatement(sql);
+         ResultSet rs = stmt.executeQuery()) {
+
+        while (rs.next()) {
+            String procCode = rs.getString("ProcCode");
+            if (procCode != null && !procCode.isEmpty()) {
+                procedureCodes.add(procCode);
+            }
+        }
+    }
+
+    return procedureCodes;
+}
+
+/**
+ * Retrieves all dental procedure codes from the database and returns them as an ObservableList.
+ * This is a convenience method for JavaFX UI components.
+ *
+ * @return An ObservableList of procedure codes
+ * @throws SQLException If a database error occurs
+ */
+public static ObservableList<String> getAllProcedureCodesObservable() throws SQLException {
+    List<String> procedureCodes = getAllProcedureCodes();
+    ObservableList<String> observableProcedureCodes = FXCollections.observableArrayList();
+    observableProcedureCodes.add("None");
+    observableProcedureCodes.addAll(procedureCodes);
+    return observableProcedureCodes;
 }
 }

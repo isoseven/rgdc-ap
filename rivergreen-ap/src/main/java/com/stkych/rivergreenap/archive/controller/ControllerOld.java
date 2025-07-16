@@ -1,4 +1,4 @@
-package com.stkych.rivergreenap.archive;
+package com.stkych.rivergreenap.archive.controller;
 
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
@@ -13,12 +13,12 @@ import java.util.ResourceBundle;
  * Provides common functionality and ensures a consistent approach across all controllers.
  * Implements Initializable to provide a standard initialization method.
  */
-public abstract class Controller implements Initializable {
+public abstract class ControllerOld implements Initializable {
 
     /**
      * Initializes the controller.
      * This method is called automatically after the FXML file has been loaded.
-     *
+     * 
      * @param location The location used to resolve relative paths for the root object
      * @param resources The resources used to localize the root object
      */
@@ -56,7 +56,7 @@ public abstract class Controller implements Initializable {
 
     /**
      * Navigates to the main scene.
-     *
+     * 
      * @throws IOException If the FXML file cannot be loaded
      */
     protected void navigateToMain() throws IOException {
@@ -65,7 +65,7 @@ public abstract class Controller implements Initializable {
 
     /**
      * Navigates to the configuration scene.
-     *
+     * 
      * @throws IOException If the FXML file cannot be loaded
      */
     protected void navigateToConfig() throws IOException {
@@ -89,9 +89,18 @@ public abstract class Controller implements Initializable {
     protected void popupConfigNew() throws IOException {
         SceneSwitcher.showPopup("sceneConfigNew", "New Configuration");
     }
+
+    /**
+     * Navigates to the news scene.
+     *
+     * @throws IOException If the FXML file cannot be loaded
+     */
+    protected void navigateToNews() throws IOException {
+        SceneSwitcher.switchScene("news", "News");
+    }
     /**
      * Handles errors that occur during controller operations.
-     *
+     * 
      * @param e The exception that occurred
      */
     protected void handleError(Exception e) {

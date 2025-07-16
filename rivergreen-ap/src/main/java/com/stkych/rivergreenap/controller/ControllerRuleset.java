@@ -2,16 +2,17 @@ package com.stkych.rivergreenap.controller;
 
 import com.stkych.rivergreenap.RiverGreenDB;
 import com.stkych.rivergreenap.SceneSwitcher;
+import com.stkych.rivergreenap.controller.cells.RulesetItemCellFactory;
 import com.stkych.rivergreenap.model.RulesetItem;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
+import javafx.geometry.Insets;
 import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.stage.Modality;
+import javafx.scene.layout.GridPane;
 import javafx.stage.Stage;
 
 import java.io.*;
@@ -145,32 +146,57 @@ public class ControllerRuleset implements Initializable {
         ButtonType okButtonType = new ButtonType("OK", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(okButtonType, ButtonType.CANCEL);
 
-        // Create the priority dropdown and procedure code text field
-        ComboBox<String> priorityComboBox = new ComboBox<>(getAllPriorities());
-        priorityComboBox.setPromptText("Select Priority");
-        priorityComboBox.setEditable(true); // Allow custom values
-        TextField procedureCodeField = new TextField();
-        procedureCodeField.setPromptText("Procedure Code");
+        try {
+            // Load the FXML file
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/stkych/rivergreenap/ruleset_dialog.fxml"));
+            Parent root = loader.load();
 
-        // Create the grid for the dialog
-        javafx.scene.layout.GridPane grid = new javafx.scene.layout.GridPane();
-        grid.add(new Label("Priority:"), 0, 0);
-        grid.add(priorityComboBox, 1, 0);
-        grid.add(new Label("Procedure Code:"), 0, 1);
-        grid.add(procedureCodeField, 1, 1);
-        dialog.getDialogPane().setContent(grid);
+            // Get the controller
+            RulesetDialogController controller = loader.getController();
 
-        // Convert the result to a RulesetItem when the OK button is clicked
-        dialog.setResultConverter(dialogButton -> {
-            if (dialogButton == okButtonType) {
-                String priority = priorityComboBox.getValue();
-                if (priority == null || priority.isEmpty()) {
-                    priority = priorityComboBox.getEditor().getText();
+            // Set up the combo boxes
+            controller.getPriorityComboBox().setItems(getAllPriorities());
+
+            // The procedure codes are already loaded from the database in the controller's initialize method
+            controller.getProcedureCodeComboBox().setEditable(true);
+
+            // Add a listener to the procedure code combo box to update the description
+            controller.getProcedureCodeComboBox().valueProperty().addListener((observable, oldValue, newValue) -> {
+                if (newValue != null && !newValue.isEmpty()) {
+                    try {
+                        String description = RiverGreenDB.getProcedureCodeDescription(newValue);
+                        controller.setDescription(description);
+                    } catch (SQLException e) {
+                        controller.setDescription("Description not available");
+                        e.printStackTrace();
+                    }
+                } else {
+                    controller.setDescription("");
                 }
-                return new RulesetItem(priority, procedureCodeField.getText());
-            }
-            return null;
-        });
+            });
+
+            // Set the content of the dialog
+            dialog.getDialogPane().setContent(root);
+
+            // Convert the result to a RulesetItem when the OK button is clicked
+            dialog.setResultConverter(dialogButton -> {
+                if (dialogButton == okButtonType) {
+                    String priority = controller.getPriorityComboBox().getValue();
+                    if (priority == null || priority.isEmpty()) {
+                        priority = controller.getPriorityComboBox().getEditor().getText();
+                    }
+                    String procedureCode = controller.getProcedureCodeComboBox().getValue();
+                    if (procedureCode == null) {
+                        procedureCode = controller.getProcedureCodeComboBox().getEditor().getText();
+                    }
+                    String description = controller.getDescriptionLabel().getText();
+                    return new RulesetItem(priority, procedureCode, description);
+                }
+                return null;
+            });
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         // Show the dialog and process the result
         Optional<RulesetItem> result = dialog.showAndWait();
@@ -203,32 +229,73 @@ public class ControllerRuleset implements Initializable {
         ButtonType okButtonType = new ButtonType("OK", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(okButtonType, ButtonType.CANCEL);
 
-        // Create the priority dropdown and procedure code text field
-        ComboBox<String> priorityComboBox = new ComboBox<>(getAllPriorities());
-        priorityComboBox.setPromptText("Select Priority");
-        priorityComboBox.setEditable(true); // Allow custom values
-        priorityComboBox.setValue(selectedItem.getPriority()); // Set the current value
-        TextField procedureCodeField = new TextField(selectedItem.getProcedureCode());
+        try {
+            // Load the FXML file
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/stkych/rivergreenap/ruleset_dialog.fxml"));
+            Parent root = loader.load();
 
-        // Create the grid for the dialog
-        javafx.scene.layout.GridPane grid = new javafx.scene.layout.GridPane();
-        grid.add(new Label("Priority:"), 0, 0);
-        grid.add(priorityComboBox, 1, 0);
-        grid.add(new Label("Procedure Code:"), 0, 1);
-        grid.add(procedureCodeField, 1, 1);
-        dialog.getDialogPane().setContent(grid);
+            // Get the controller
+            RulesetDialogController controller = loader.getController();
 
-        // Convert the result to a RulesetItem when the OK button is clicked
-        dialog.setResultConverter(dialogButton -> {
-            if (dialogButton == okButtonType) {
-                String priority = priorityComboBox.getValue();
-                if (priority == null || priority.isEmpty()) {
-                    priority = priorityComboBox.getEditor().getText();
+            // The controller now initializes its own UI components in the initialize method
+            // We just need to set the current values
+
+            // Set the current values
+            controller.getPriorityComboBox().setValue(selectedItem.getPriority());
+            controller.getProcedureCodeComboBox().setValue(selectedItem.getProcedureCode());
+
+            // Parse the teeth from the description if they exist
+            String description = selectedItem.getDescription();
+            if (description != null && description.contains("(Teeth: ")) {
+                int start = description.indexOf("(Teeth: ") + 8;
+                int end = description.indexOf(")", start);
+                if (end > start) {
+                    String teethString = description.substring(start, end);
+                    String[] teeth = teethString.split(",");
+
+                    // Select the teeth in the UI
+                    for (String tooth : teeth) {
+                        for (javafx.scene.Node node : controller.getTeethGridPane().getChildren()) {
+                            if (node instanceof CheckBox) {
+                                CheckBox checkBox = (CheckBox) node;
+                                if (String.valueOf(checkBox.getUserData()).equals(tooth.trim())) {
+                                    checkBox.setSelected(true);
+                                    break;
+                                }
+                            }
+                        }
+                    }
                 }
-                return new RulesetItem(priority, procedureCodeField.getText());
             }
-            return null;
-        });
+
+            // Set the content of the dialog
+            dialog.getDialogPane().setContent(root);
+
+            // Convert the result to a RulesetItem when the OK button is clicked
+            dialog.setResultConverter(dialogButton -> {
+                if (dialogButton == okButtonType) {
+                    String priority = controller.getPriority();
+                    String procedureCode = controller.getProcedureCode();
+                    String descriptionText = controller.getDescriptionLabel().getText().replace("Description: ", "");
+
+                    // Get the selected teeth as a comma-separated string
+                    String teethString = controller.getSelectedTeethAsString();
+
+                    // Create a new RulesetItem with the procedure code and priority
+                    // Store the teeth in the description field for now
+                    // In a real application, you would want to store this in a separate field
+                    String fullDescription = descriptionText;
+                    if (!teethString.isEmpty()) {
+                        fullDescription += " (Teeth: " + teethString + ")";
+                    }
+
+                    return new RulesetItem(priority, procedureCode, fullDescription);
+                }
+                return null;
+            });
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         // Show the dialog and process the result
         Optional<RulesetItem> result = dialog.showAndWait();
@@ -275,7 +342,7 @@ public class ControllerRuleset implements Initializable {
     private void handleOkButtonAction() {
         saveRuleset(currentRuleset);
         try {
-            SceneSwitcher.switchScene("news", "RiverGreen AP");
+            SceneSwitcher.switchScene("main", "RiverGreen AP");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -288,10 +355,148 @@ public class ControllerRuleset implements Initializable {
     @FXML
     private void handleCancelButtonAction() {
         try {
-            SceneSwitcher.switchScene("news", "RiverGreen AP");
+            SceneSwitcher.switchScene("main", "RiverGreen AP");
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    /**
+     * Handles the Select Patient menu item action.
+     * Opens a dialog to enter a patient number and reloads the application with that patient.
+     */
+    @FXML
+    private void handleSelectPatientAction() {
+        System.out.println("Select Patient menu item clicked");
+
+        // Create a dialog to enter patient number
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.setTitle("Select Patient");
+        dialog.setHeaderText("Enter Patient Number");
+        dialog.setContentText("Patient ID:");
+
+        // Show the dialog and wait for a response
+        dialog.showAndWait().ifPresent(patientIdStr -> {
+            try {
+                // Parse the patient number
+                int patientNumber = Integer.parseInt(patientIdStr);
+
+                // Store the new patient number in the data cache
+                SceneSwitcher.putData("patientNumber", patientNumber);
+
+                // Reload the main scene with the new patient number
+                SceneSwitcher.switchScene("main", "RiverGreen Dental Application");
+
+            } catch (NumberFormatException e) {
+                // Show an error if the input is not a valid number
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setTitle("Error");
+                alert.setHeaderText("Invalid Patient Number");
+                alert.setContentText("Please enter a valid patient number.");
+                alert.showAndWait();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
+    }
+
+    /**
+     * Handles the Reset menu item action.
+     * Resets all priorities and diagnosis.
+     */
+    @FXML
+    private void handleResetAction() {
+        System.out.println("Reset menu item clicked");
+
+        // Confirm before resetting
+        Alert confirmAlert = new Alert(Alert.AlertType.CONFIRMATION);
+        confirmAlert.setTitle("Confirm Reset");
+        confirmAlert.setHeaderText("Reset All Ruleset Items");
+        confirmAlert.setContentText("Are you sure you want to reset all ruleset items? This action cannot be undone.");
+
+        confirmAlert.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.OK) {
+                // Reload the current ruleset from file
+                loadRuleset(currentRuleset);
+
+                // Show success message
+                Alert successAlert = new Alert(Alert.AlertType.INFORMATION);
+                successAlert.setTitle("Reset Complete");
+                successAlert.setHeaderText(null);
+                successAlert.setContentText("All ruleset items have been reset.");
+                successAlert.showAndWait();
+            }
+        });
+    }
+
+    /**
+     * Handles the Close menu item action.
+     * Closes the current window.
+     */
+    @FXML
+    private void handleCloseAction() {
+        System.out.println("Close menu item clicked");
+
+        // Get the current stage and close it
+        Stage stage = (Stage) listView.getScene().getWindow();
+        stage.close();
+    }
+
+    /**
+     * Handles the Patient View menu item action.
+     * Navigates to the main patient view.
+     */
+    @FXML
+    private void handlePatientViewAction() {
+        System.out.println("Patient View menu item clicked");
+
+        try {
+            SceneSwitcher.switchScene("main", "RiverGreen Dental Application");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Handles the About menu item action.
+     * Shows information about the application.
+     */
+    @FXML
+    private void handleAboutAction() {
+        System.out.println("About menu item clicked");
+
+        // Create an alert dialog
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("About RiverGreen Dental Application");
+        alert.setHeaderText("RiverGreen Dental Application");
+        alert.setContentText("Version 1.0\n\nA dental treatment planning application for automating procedure priorities.");
+
+        // Add more detailed information in an expandable area
+        Label label = new Label("Additional Information:");
+        TextArea textArea = new TextArea(
+            "RiverGreen Dental Application\n" +
+            "Version 1.0\n\n" +
+            "This application helps dental professionals manage treatment plans by automatically prioritizing procedures based on configurable rulesets.\n\n" +
+            "Features:\n" +
+            "- Patient-specific treatment plans\n" +
+            "- Configurable priority rulesets\n" +
+            "- Drag-and-drop procedure reordering\n" +
+            "- Database integration\n\n" +
+            "© 2025 RiverGreen Dental"
+        );
+        textArea.setEditable(false);
+        textArea.setWrapText(true);
+        textArea.setPrefHeight(200);
+
+        GridPane expContent = new GridPane();
+        expContent.setMaxWidth(Double.MAX_VALUE);
+        expContent.add(label, 0, 0);
+        expContent.add(textArea, 0, 1);
+
+        alert.getDialogPane().setExpandableContent(expContent);
+        alert.getDialogPane().setExpanded(true);
+
+        alert.showAndWait();
     }
 
     /**
@@ -303,10 +508,23 @@ public class ControllerRuleset implements Initializable {
         List<RulesetItem> rulesetA = loadRulesetFromFile("rulesetA.csv");
         if (rulesetA.isEmpty()) {
             // Create a default ruleset A
-            rulesetA.add(new RulesetItem("Header", "Header"));
-            rulesetA.add(new RulesetItem("1", "D2140"));
-            rulesetA.add(new RulesetItem("2", "D2150"));
-            rulesetA.add(new RulesetItem("3", "D2160"));
+            rulesetA.add(new RulesetItem("Header", "Header", "Description"));
+
+            // Try to get descriptions from the database
+            String description1 = "";
+            String description2 = "";
+            String description3 = "";
+            try {
+                description1 = RiverGreenDB.getProcedureCodeDescription("D2140");
+                description2 = RiverGreenDB.getProcedureCodeDescription("D2150");
+                description3 = RiverGreenDB.getProcedureCodeDescription("D2160");
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+
+            rulesetA.add(new RulesetItem("1", "D2140", description1));
+            rulesetA.add(new RulesetItem("2", "D2150", description2));
+            rulesetA.add(new RulesetItem("3", "D2160", description3));
         }
         rulesets.put("A", rulesetA);
 
@@ -314,10 +532,23 @@ public class ControllerRuleset implements Initializable {
         List<RulesetItem> rulesetB = loadRulesetFromFile("rulesetB.csv");
         if (rulesetB.isEmpty()) {
             // Create a default ruleset B
-            rulesetB.add(new RulesetItem("Header", "Header"));
-            rulesetB.add(new RulesetItem("1", "D2330"));
-            rulesetB.add(new RulesetItem("2", "D2331"));
-            rulesetB.add(new RulesetItem("3", "D2332"));
+            rulesetB.add(new RulesetItem("Header", "Header", "Description"));
+
+            // Try to get descriptions from the database
+            String description1 = "";
+            String description2 = "";
+            String description3 = "";
+            try {
+                description1 = RiverGreenDB.getProcedureCodeDescription("D2330");
+                description2 = RiverGreenDB.getProcedureCodeDescription("D2331");
+                description3 = RiverGreenDB.getProcedureCodeDescription("D2332");
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+
+            rulesetB.add(new RulesetItem("1", "D2330", description1));
+            rulesetB.add(new RulesetItem("2", "D2331", description2));
+            rulesetB.add(new RulesetItem("3", "D2332", description3));
         }
         rulesets.put("B", rulesetB);
     }
@@ -334,19 +565,36 @@ public class ControllerRuleset implements Initializable {
 
         if (!file.exists()) {
             // Add a header item
-            items.add(new RulesetItem("Header", "Header"));
+            items.add(new RulesetItem("Header", "Header", "Description"));
             return items;
         }
 
         try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
             // Add a header item
-            items.add(new RulesetItem("Header", "Header"));
+            items.add(new RulesetItem("Header", "Header", "Description"));
 
             String line;
             while ((line = reader.readLine()) != null) {
                 String[] parts = line.split(",");
-                if (parts.length == 2) {
-                    items.add(new RulesetItem(parts[0], parts[1]));
+                if (parts.length >= 2) {
+                    String priority = parts[0];
+                    String procedureCode = parts[1];
+                    String description = "";
+
+                    // If the description is in the file, use it
+                    if (parts.length >= 3) {
+                        description = parts[2];
+                    } else {
+                        // Otherwise, try to fetch it from the database
+                        try {
+                            description = RiverGreenDB.getProcedureCodeDescription(procedureCode);
+                        } catch (SQLException e) {
+                            // If there's an error, use an empty description
+                            e.printStackTrace();
+                        }
+                    }
+
+                    items.add(new RulesetItem(priority, procedureCode, description));
                 }
             }
         } catch (IOException e) {
@@ -378,7 +626,7 @@ public class ControllerRuleset implements Initializable {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
             for (int i = 1; i < rulesetItems.size(); i++) {
                 RulesetItem item = rulesetItems.get(i);
-                writer.write(item.getPriority() + "," + item.getProcedureCode());
+                writer.write(item.getPriority() + "," + item.getProcedureCode() + "," + item.getDescription());
                 writer.newLine();
             }
         } catch (IOException e) {
@@ -402,7 +650,7 @@ public class ControllerRuleset implements Initializable {
 
         // Clear the items and add the header and sorted items
         rulesetItems.clear();
-        rulesetItems.add(new RulesetItem("Header", "Header"));
+        rulesetItems.add(new RulesetItem("Header", "Header", "Description"));
         rulesetItems.addAll(itemsWithoutHeader);
     }
 
@@ -449,8 +697,15 @@ public class ControllerRuleset implements Initializable {
     private void sortPriorities(ObservableList<String> priorities) {
         // Create a new list to append to
         ObservableList<String> sortedPriorities = FXCollections.observableArrayList();
-        // Start by appending "Next"
+
+        // Start by appending "None" if it's not already in the list
+        if (!priorities.contains("None")) {
+            sortedPriorities.add("None");
+        }
+
+        // Then append "Next"
         sortedPriorities.add("Next");
+
         // Add all numbered priorities
         for (int i = 1; i <= 10; i++) {
             sortedPriorities.add(String.valueOf(i));
@@ -460,6 +715,7 @@ public class ControllerRuleset implements Initializable {
             sortedPriorities.add(i + " Wait");
             sortedPriorities.add(i + " Decline");
         }
+
         // Put all other priorities in
         for (String priority : priorities) {
             if (!sortedPriorities.contains(priority)) {
