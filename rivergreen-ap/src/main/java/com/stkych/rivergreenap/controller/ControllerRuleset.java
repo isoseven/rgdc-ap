@@ -4,6 +4,7 @@ import com.stkych.rivergreenap.RiverGreenDB;
 import com.stkych.rivergreenap.SceneSwitcher;
 import com.stkych.rivergreenap.controller.cells.RulesetItemCellFactory;
 import com.stkych.rivergreenap.model.RulesetItem;
+import com.stkych.rivergreenap.util.FileUtils;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -79,20 +80,25 @@ public class ControllerRuleset implements Initializable {
         // Update the window title
         patientNameLabel.setText("Ruleset Configuration");
 
-        // Add a listener to check for the refresh flag when the window regains focus
-        Stage stage = (Stage) listView.getScene().getWindow();
-        stage.focusedProperty().addListener((observable, oldValue, newValue) -> {
-            if (newValue) { // When the window regains focus
-                Boolean refreshFlag = (Boolean) SceneSwitcher.getData("refreshRulesetWindow");
-                if (refreshFlag != null && refreshFlag) {
-                    // Refresh the ruleset window
-                    loadRulesets();
-                    setupRulesetSelectMenu();
-                    loadRuleset(currentRuleset);
+        // Add a listener to the scene property to set up the focus listener once the scene is available
+        listView.sceneProperty().addListener((observable, oldScene, newScene) -> {
+            if (newScene != null) {
+                // Now that the scene is available, we can get the window and add the focus listener
+                Stage stage = (Stage) newScene.getWindow();
+                stage.focusedProperty().addListener((obs, oldValue, newValue) -> {
+                    if (newValue) { // When the window regains focus
+                        Boolean refreshFlag = (Boolean) SceneSwitcher.getData("refreshRulesetWindow");
+                        if (refreshFlag != null && refreshFlag) {
+                            // Refresh the ruleset window
+                            loadRulesets();
+                            setupRulesetSelectMenu();
+                            loadRuleset(currentRuleset);
 
-                    // Clear the flag
-                    SceneSwitcher.removeData("refreshRulesetWindow");
-                }
+                            // Clear the flag
+                            SceneSwitcher.removeData("refreshRulesetWindow");
+                        }
+                    }
+                });
             }
         });
     }
@@ -210,7 +216,18 @@ public class ControllerRuleset implements Initializable {
                     }
                     String description = controller.getDescriptionLabel().getText();
                     String teethNumbers = controller.getSelectedTeethAsString();
-                    return new RulesetItem(priority, procedureCode, description, teethNumbers);
+                    String diagnosis = controller.getDiagnosis();
+
+                    // Validate inputs
+                    if (!validateRulesetItem(procedureCode, teethNumbers, priority, diagnosis)) {
+                        return null;
+                    }
+
+                    RulesetItem item = new RulesetItem(priority, procedureCode, description, teethNumbers);
+                    if (diagnosis != null && !diagnosis.isEmpty()) {
+                        item.setDiagnosis(diagnosis);
+                    }
+                    return item;
                 }
                 return null;
             });
@@ -228,13 +245,11 @@ public class ControllerRuleset implements Initializable {
     }
 
     /**
-     * Handles the edit button action.
+     * Handles the edit ruleset button action.
      * Opens the ruleset configuration window as a popup.
      */
     @FXML
-    private void handleEditButtonAction() {
-        System.out.println("Edit Ruleset button clicked");
-
+    private void handleEditRulesetButtonAction() {
         try {
             // Clear any existing refresh flag
             SceneSwitcher.removeData("refreshRulesetWindow");
@@ -244,6 +259,165 @@ public class ControllerRuleset implements Initializable {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    /**
+     * Handles the edit button action.
+     * Shows a dialog to edit the selected ruleset item.
+     */
+    @FXML
+    private void handleEditButtonAction() {
+        // Get the selected item
+        RulesetItem selectedItem = listView.getSelectionModel().getSelectedItem();
+        if (selectedItem == null || listView.getSelectionModel().getSelectedIndex() == 0) {
+            // No item selected or header selected
+            return;
+        }
+
+        System.out.println("Edit button clicked for item: " + selectedItem);
+
+        // Create a dialog to edit the ruleset item details
+        Dialog<RulesetItem> dialog = new Dialog<>();
+        dialog.setTitle("Edit Ruleset Item");
+        dialog.setHeaderText("Edit the details for the ruleset item");
+
+        // Set the button types
+        ButtonType okButtonType = new ButtonType("OK", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(okButtonType, ButtonType.CANCEL);
+
+        try {
+            // Load the FXML file
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/stkych/rivergreenap/ruleset_dialog.fxml"));
+            Parent root = loader.load();
+
+            // Get the controller
+            RulesetDialogController controller = loader.getController();
+
+            // Set up the combo boxes
+            controller.getPriorityComboBox().setItems(getAllPriorities());
+
+            // Pre-populate the fields with the selected item's data
+            controller.getPriorityComboBox().setValue(selectedItem.getPriority());
+            controller.getProcedureCodeComboBox().setValue(selectedItem.getProcedureCode());
+            controller.setDescription(selectedItem.getDescription());
+            controller.setSelectedTeethFromString(selectedItem.getTeethNumbers());
+
+            // Set the diagnosis ComboBox value if the selected item has a diagnosis
+            if (selectedItem.getDiagnosis() != null && !selectedItem.getDiagnosis().isEmpty()) {
+                controller.getDiagnosisComboBox().setValue(selectedItem.getDiagnosis());
+            }
+
+            // The procedure codes are already loaded from the database in the controller's initialize method
+            controller.getProcedureCodeComboBox().setEditable(true);
+
+            // Add a listener to the procedure code combo box to update the description
+            controller.getProcedureCodeComboBox().valueProperty().addListener((observable, oldValue, newValue) -> {
+                if (newValue != null && !newValue.isEmpty()) {
+                    try {
+                        String description = RiverGreenDB.getProcedureCodeDescription(newValue);
+                        controller.setDescription(description);
+                    } catch (SQLException e) {
+                        controller.setDescription("Description not available");
+                        e.printStackTrace();
+                    }
+                } else {
+                    controller.setDescription("");
+                }
+            });
+
+            // Set the content of the dialog
+            dialog.getDialogPane().setContent(root);
+
+            // Convert the result to a RulesetItem when the OK button is clicked
+            dialog.setResultConverter(dialogButton -> {
+                if (dialogButton == okButtonType) {
+                    String priority = controller.getPriorityComboBox().getValue();
+                    if (priority == null || priority.isEmpty()) {
+                        priority = controller.getPriorityComboBox().getEditor().getText();
+                    }
+                    String procedureCode = controller.getProcedureCodeComboBox().getValue();
+                    if (procedureCode == null) {
+                        procedureCode = controller.getProcedureCodeComboBox().getEditor().getText();
+                    }
+                    String description = controller.getDescriptionLabel().getText();
+                    String teethNumbers = controller.getSelectedTeethAsString();
+                    String diagnosis = controller.getDiagnosis();
+
+                    // Validate inputs
+                    if (!validateRulesetItem(procedureCode, teethNumbers, priority, diagnosis)) {
+                        return null;
+                    }
+
+                    // Create a new RulesetItem with the updated values
+                    RulesetItem updatedItem = new RulesetItem(priority, procedureCode, description, teethNumbers);
+
+                    // Set the diagnosis from the controller if it's not null or empty
+                    // Otherwise, preserve the existing diagnosis if it exists
+                    if (diagnosis != null && !diagnosis.isEmpty()) {
+                        updatedItem.setDiagnosis(diagnosis);
+                    } else if (selectedItem.getDiagnosis() != null && !selectedItem.getDiagnosis().isEmpty()) {
+                        updatedItem.setDiagnosis(selectedItem.getDiagnosis());
+                    }
+                    return updatedItem;
+                }
+                return null;
+            });
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        // Show the dialog and process the result
+        Optional<RulesetItem> result = dialog.showAndWait();
+        result.ifPresent(updatedItem -> {
+            // Replace the selected item with the updated item
+            int selectedIndex = listView.getSelectionModel().getSelectedIndex();
+            rulesetItems.set(selectedIndex, updatedItem);
+            sortRulesetItems();
+            saveRuleset(currentRuleset);
+        });
+    }
+
+    /**
+     * Shows an error alert with the specified title and message.
+     *
+     * @param title The title of the alert
+     * @param message The message to display
+     */
+    private void showErrorAlert(String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle("Error");
+        alert.setHeaderText(title);
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
+
+    /**
+     * Validates a ruleset item to ensure it has at least one of dental code or tooth selection,
+     * and at least one of diagnosis or priority.
+     *
+     * @param procedureCode The dental procedure code
+     * @param teethNumbers The selected teeth number as a string
+     * @param priority The priority
+     * @param diagnosis The diagnosis
+     * @return true if the ruleset item is valid, false otherwise
+     */
+    private boolean validateRulesetItem(String procedureCode, String teethNumbers, String priority, String diagnosis) {
+        boolean hasDentalCodeOrTeeth = (procedureCode != null && !procedureCode.isEmpty()) || 
+                                      (teethNumbers != null && !teethNumbers.isEmpty());
+        boolean hasDiagnosisOrPriority = (diagnosis != null && !diagnosis.isEmpty()) || 
+                                        (priority != null && !priority.isEmpty());
+
+        if (!hasDentalCodeOrTeeth) {
+            showErrorAlert("Validation Error", "Each rule must have at least one of either dental code or tooth selection.");
+            return false;
+        }
+
+        if (!hasDiagnosisOrPriority) {
+            showErrorAlert("Validation Error", "Each rule must have at least one of either diagnosis or priority.");
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -453,9 +627,12 @@ public class ControllerRuleset implements Initializable {
         // Clear existing rulesets
         rulesets.clear();
 
-        // Look for ruleset files
-        File currentDir = new File(".");
-        File[] files = currentDir.listFiles((dir, name) -> name.startsWith("ruleset") && name.endsWith(".csv"));
+        // Migrate ruleset files from the current directory to the ruleset directory
+        FileUtils.migrateRulesetFiles();
+
+        // Look for ruleset files in the ruleset directory
+        File rulesetDir = FileUtils.getRulesetDirectory();
+        File[] files = rulesetDir.listFiles((dir, name) -> name.startsWith("ruleset") && name.endsWith(".csv"));
 
         if (files != null) {
             for (File file : files) {
@@ -464,7 +641,7 @@ public class ControllerRuleset implements Initializable {
                 String rulesetName = filename.substring(7, filename.length() - 4);
 
                 // Load the ruleset
-                List<RulesetItem> rulesetItems = loadRulesetFromFile(filename);
+                List<RulesetItem> rulesetItems = loadRulesetFromFile(file.getAbsolutePath());
                 if (!rulesetItems.isEmpty()) {
                     rulesets.put(rulesetName, rulesetItems);
                 }
@@ -507,53 +684,32 @@ public class ControllerRuleset implements Initializable {
 
                     // If there are more than 2 parts, the rest are teeth numbers and diagnosis
                     if (parts.length > 2) {
-                        // Determine how many parts are for teeth numbers
-                        int diagnosisIndex = -1;
-
-                        // Look for a part that doesn't look like a tooth number (not a number)
-                        for (int i = 2; i < parts.length; i++) {
-                            try {
-                                Integer.parseInt(parts[i].trim());
-                            } catch (NumberFormatException e) {
-                                // This part is not a number, so it's the start of the diagnosis
-                                diagnosisIndex = i;
-                                break;
+                        // If there are exactly 3 parts, the third part could be either teeth numbers or diagnosis
+                        if (parts.length == 3) {
+                            String thirdPart = parts[2].trim();
+                            // Check if the third part contains hyphens, which would indicate teeth numbers
+                            if (thirdPart.contains("-")) {
+                                teethNumbers = thirdPart;
+                            } else {
+                                // If it doesn't contain hyphens, it's probably a diagnosis
+                                diagnosis = thirdPart;
                             }
-                        }
+                        } 
+                        // If there are 4 or more parts, the third part is teeth numbers and the fourth part is diagnosis
+                        else if (parts.length >= 4) {
+                            teethNumbers = parts[2].trim();
 
-                        // If we found a diagnosis part
-                        if (diagnosisIndex > 2) {
-                            // Teeth numbers are all parts from index 2 to diagnosisIndex-1
-                            StringBuilder teethBuilder = new StringBuilder();
-                            for (int i = 2; i < diagnosisIndex; i++) {
-                                if (i > 2) teethBuilder.append("-");
-                                teethBuilder.append(parts[i].trim());
-                            }
-                            teethNumbers = teethBuilder.toString();
-
-                            // Diagnosis is all parts from diagnosisIndex to the end
+                            // Diagnosis is all parts from index 3 to the end
                             StringBuilder diagnosisBuilder = new StringBuilder();
-                            for (int i = diagnosisIndex; i < parts.length; i++) {
-                                if (i > diagnosisIndex) diagnosisBuilder.append(",");
-                                diagnosisBuilder.append(parts[i].trim());
-                            }
-                            diagnosis = diagnosisBuilder.toString();
-                        } else if (diagnosisIndex == 2) {
-                            // No teeth numbers, just diagnosis
-                            StringBuilder diagnosisBuilder = new StringBuilder();
-                            for (int i = 2; i < parts.length; i++) {
-                                if (i > 2) diagnosisBuilder.append(",");
+                            for (int i = 3; i < parts.length; i++) {
+                                if (i > 3) diagnosisBuilder.append(",");
                                 diagnosisBuilder.append(parts[i].trim());
                             }
                             diagnosis = diagnosisBuilder.toString();
                         } else {
-                            // All remaining parts are teeth numbers
-                            StringBuilder teethBuilder = new StringBuilder();
-                            for (int i = 2; i < parts.length; i++) {
-                                if (i > 2) teethBuilder.append("-");
-                                teethBuilder.append(parts[i].trim());
-                            }
-                            teethNumbers = teethBuilder.toString();
+                            // This should never happen, but just in case
+                            teethNumbers = "";
+                            diagnosis = "";
                         }
                     }
 
@@ -599,8 +755,7 @@ public class ControllerRuleset implements Initializable {
      * @param rulesetName The name of the ruleset to save
      */
     private void saveRuleset(String rulesetName) {
-        String filename = "ruleset" + rulesetName + ".csv";
-        File file = new File(filename);
+        File file = FileUtils.getRulesetFile(rulesetName);
 
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
             for (int i = 1; i < rulesetItems.size(); i++) {

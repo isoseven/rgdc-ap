@@ -8,12 +8,24 @@ import java.util.*;
  */
 public class TeethNotationUtil {
 
-    // Type sets
-    private static final Set<Integer> THIRD_MOLARS = new HashSet<>(Arrays.asList(1, 16, 17, 32));
-    private static final Set<Integer> MOLARS = new HashSet<>(Arrays.asList(2, 3, 14, 15, 18, 19, 30, 31));
-    private static final Set<Integer> PREMOLARS = new HashSet<>(Arrays.asList(4, 5, 12, 13, 20, 21, 28, 29));
-    private static final Set<Integer> CANINES = new HashSet<>(Arrays.asList(6, 11, 22, 27));
-    private static final Set<Integer> INCISORS = new HashSet<>(Arrays.asList(7, 8, 9, 10, 23, 24, 25, 26));
+    // Type sets - using exact names from shorthand.txt
+    private static final Set<Integer> WISDOM = new HashSet<>(Arrays.asList(1, 16, 17, 32));
+    private static final Set<Integer> MOLAR = new HashSet<>(Arrays.asList(2, 3, 14, 15, 18, 19, 30, 31));
+    private static final Set<Integer> PREMOLAR = new HashSet<>(Arrays.asList(3, 4, 13, 14, 20, 21, 28, 29));
+    private static final Set<Integer> CANINE = new HashSet<>(Arrays.asList(6, 11, 22, 27));
+    private static final Set<Integer> INCISOR = new HashSet<>(Arrays.asList(7, 8, 9, 10, 23, 24, 25, 26));
+
+    // Combined sets from shorthand.txt
+    private static final Set<Integer> UPPER_WISDOM = new HashSet<>(Arrays.asList(1, 16));
+    private static final Set<Integer> LOWER_WISDOM = new HashSet<>(Arrays.asList(17, 32));
+    private static final Set<Integer> UPPER_MOLAR = new HashSet<>(Arrays.asList(2, 3, 14, 15));
+    private static final Set<Integer> LOWER_MOLAR = new HashSet<>(Arrays.asList(18, 19, 30, 31));
+    private static final Set<Integer> UPPER_PREMOLAR = new HashSet<>(Arrays.asList(3, 4, 13, 14));
+    private static final Set<Integer> LOWER_PREMOLAR = new HashSet<>(Arrays.asList(20, 21, 28, 29));
+    private static final Set<Integer> UPPER_CANINE = new HashSet<>(Arrays.asList(6, 11));
+    private static final Set<Integer> LOWER_CANINE = new HashSet<>(Arrays.asList(22, 27));
+    private static final Set<Integer> UPPER_INCISOR = new HashSet<>(Arrays.asList(7, 8, 9, 10));
+    private static final Set<Integer> LOWER_INCISOR = new HashSet<>(Arrays.asList(23, 24, 25, 26));
 
     // Location sets
     private static final Set<Integer> UPPER = new HashSet<>();
@@ -68,39 +80,71 @@ public class TeethNotationUtil {
             }
         }
 
+        // Check for exact matches with combined sets from shorthand.txt
+        if (teeth.equals(UPPER_WISDOM)) {
+            return "Upper Wisdom";
+        }
+        if (teeth.equals(LOWER_WISDOM)) {
+            return "Lower Wisdom";
+        }
+        if (teeth.equals(UPPER_MOLAR)) {
+            return "Upper Molar";
+        }
+        if (teeth.equals(LOWER_MOLAR)) {
+            return "Lower Molar";
+        }
+        if (teeth.equals(UPPER_PREMOLAR)) {
+            return "Upper Premolar";
+        }
+        if (teeth.equals(LOWER_PREMOLAR)) {
+            return "Lower Premolar";
+        }
+        if (teeth.equals(UPPER_CANINE)) {
+            return "Upper Canine";
+        }
+        if (teeth.equals(LOWER_CANINE)) {
+            return "Lower Canine";
+        }
+        if (teeth.equals(UPPER_INCISOR)) {
+            return "Upper Incisor";
+        }
+        if (teeth.equals(LOWER_INCISOR)) {
+            return "Lower Incisor";
+        }
+
         // Check for type sets
         List<String> typeMatches = new ArrayList<>();
-        if (teeth.equals(THIRD_MOLARS)) {
-            return "Third Molars";
+        if (teeth.equals(WISDOM)) {
+            return "Wisdom";
         }
-        if (teeth.equals(MOLARS)) {
-            return "Molars";
+        if (teeth.equals(MOLAR)) {
+            return "Molar";
         }
-        if (teeth.equals(PREMOLARS)) {
-            return "Premolars";
+        if (teeth.equals(PREMOLAR)) {
+            return "Premolar";
         }
-        if (teeth.equals(CANINES)) {
-            return "Canines";
+        if (teeth.equals(CANINE)) {
+            return "Canine";
         }
-        if (teeth.equals(INCISORS)) {
-            return "Incisors";
+        if (teeth.equals(INCISOR)) {
+            return "Incisor";
         }
 
         // Check for partial type matches
-        if (THIRD_MOLARS.containsAll(teeth)) {
-            typeMatches.add("Third Molars");
+        if (WISDOM.containsAll(teeth)) {
+            typeMatches.add("Wisdom");
         }
-        if (MOLARS.containsAll(teeth)) {
-            typeMatches.add("Molars");
+        if (MOLAR.containsAll(teeth)) {
+            typeMatches.add("Molar");
         }
-        if (PREMOLARS.containsAll(teeth)) {
-            typeMatches.add("Premolars");
+        if (PREMOLAR.containsAll(teeth)) {
+            typeMatches.add("Premolar");
         }
-        if (CANINES.containsAll(teeth)) {
-            typeMatches.add("Canines");
+        if (CANINE.containsAll(teeth)) {
+            typeMatches.add("Canine");
         }
-        if (INCISORS.containsAll(teeth)) {
-            typeMatches.add("Incisors");
+        if (INCISOR.containsAll(teeth)) {
+            typeMatches.add("Incisor");
         }
 
         // Check for location sets
@@ -187,22 +231,55 @@ public class TeethNotationUtil {
             return "";
         }
 
+        // Check for exact matches with combined sets from shorthand.txt
+        if (shorthand.equals("Upper Wisdom")) {
+            return setToString(UPPER_WISDOM);
+        }
+        if (shorthand.equals("Lower Wisdom")) {
+            return setToString(LOWER_WISDOM);
+        }
+        if (shorthand.equals("Upper Molar")) {
+            return setToString(UPPER_MOLAR);
+        }
+        if (shorthand.equals("Lower Molar")) {
+            return setToString(LOWER_MOLAR);
+        }
+        if (shorthand.equals("Upper Premolar")) {
+            return setToString(UPPER_PREMOLAR);
+        }
+        if (shorthand.equals("Lower Premolar")) {
+            return setToString(LOWER_PREMOLAR);
+        }
+        if (shorthand.equals("Upper Canine")) {
+            return setToString(UPPER_CANINE);
+        }
+        if (shorthand.equals("Lower Canine")) {
+            return setToString(LOWER_CANINE);
+        }
+        if (shorthand.equals("Upper Incisor")) {
+            return setToString(UPPER_INCISOR);
+        }
+        if (shorthand.equals("Lower Incisor")) {
+            return setToString(LOWER_INCISOR);
+        }
+
         // Check for type sets
-        if (shorthand.equals("Third Molars")) {
-            return setToString(THIRD_MOLARS);
+        if (shorthand.equals("Wisdom")) {
+            return setToString(WISDOM);
         }
-        if (shorthand.equals("Molars")) {
-            return setToString(MOLARS);
+        if (shorthand.equals("Molar")) {
+            return setToString(MOLAR);
         }
-        if (shorthand.equals("Premolars")) {
-            return setToString(PREMOLARS);
+        if (shorthand.equals("Premolar")) {
+            return setToString(PREMOLAR);
         }
-        if (shorthand.equals("Canines")) {
-            return setToString(CANINES);
+        if (shorthand.equals("Canine")) {
+            return setToString(CANINE);
         }
-        if (shorthand.equals("Incisors")) {
-            return setToString(INCISORS);
+        if (shorthand.equals("Incisor")) {
+            return setToString(INCISOR);
         }
+
 
         // Check for combined location and type
         Set<Integer> result = new HashSet<>();
@@ -237,58 +314,58 @@ public class TeethNotationUtil {
         }
 
         // Check for type
-        if (shorthand.contains("Third Molars")) {
+        if (shorthand.contains("Wisdom")) {
             if (hasLocation) {
                 // Intersect with existing result
                 Set<Integer> intersection = new HashSet<>(result);
-                intersection.retainAll(THIRD_MOLARS);
+                intersection.retainAll(WISDOM);
                 result = intersection;
             } else {
-                result.addAll(THIRD_MOLARS);
+                result.addAll(WISDOM);
             }
             hasType = true;
         }
-        if (shorthand.contains("Molars")) {
+        if (shorthand.contains("Molar")) {
             if (hasLocation || hasType) {
                 // Intersect with existing result
                 Set<Integer> intersection = new HashSet<>(result);
-                intersection.retainAll(MOLARS);
+                intersection.retainAll(MOLAR);
                 result = intersection;
             } else {
-                result.addAll(MOLARS);
+                result.addAll(MOLAR);
             }
             hasType = true;
         }
-        if (shorthand.contains("Premolars")) {
+        if (shorthand.contains("Premolar")) {
             if (hasLocation || hasType) {
                 // Intersect with existing result
                 Set<Integer> intersection = new HashSet<>(result);
-                intersection.retainAll(PREMOLARS);
+                intersection.retainAll(PREMOLAR);
                 result = intersection;
             } else {
-                result.addAll(PREMOLARS);
+                result.addAll(PREMOLAR);
             }
             hasType = true;
         }
-        if (shorthand.contains("Canines")) {
+        if (shorthand.contains("Canine")) {
             if (hasLocation || hasType) {
                 // Intersect with existing result
                 Set<Integer> intersection = new HashSet<>(result);
-                intersection.retainAll(CANINES);
+                intersection.retainAll(CANINE);
                 result = intersection;
             } else {
-                result.addAll(CANINES);
+                result.addAll(CANINE);
             }
             hasType = true;
         }
-        if (shorthand.contains("Incisors")) {
+        if (shorthand.contains("Incisor")) {
             if (hasLocation || hasType) {
                 // Intersect with existing result
                 Set<Integer> intersection = new HashSet<>(result);
-                intersection.retainAll(INCISORS);
+                intersection.retainAll(INCISOR);
                 result = intersection;
             } else {
-                result.addAll(INCISORS);
+                result.addAll(INCISOR);
             }
             hasType = true;
         }

@@ -1,17 +1,18 @@
 "TYPE" sets
-append to end if the set is exactly equal to any of these. if there are multiple, write "A + B (Molars + Premolars)"
-"Third Molars" = 1 + 16 + 17 + 32
-"Molars" = 2 + 3 + 14 + 15 + 18 + 19 + 30 + 31
-"Premolars" = 3 + 4 + 13 + 14 + 20 + 21 + 28 + 29
-"Canines" = 6 + 11 + 22 + 27
-"Incisors" = 7 + 8 + 9 + 10 + 23 + 24 + 25 + 26
-
-
-"LOCATION" sets
-if there is a "type" set pre-existing, append to front if the set is contained in one of these.
-otherwise if there is none, append to front if the set is exactly equal to any of these.
-Upper/Lower goes in front of Left/Right.
-Upper = 1 to 16
-Lower = 17 to 32
-Left = 9 to 24
-Right = 1 to 8, 25 to 32
+"Wisdom" = 1 + 16 + 17 + 32
+"Molar" = 2 + 3 + 14 + 15 + 18 + 19 + 30 + 31
+"Premolar" = 3 + 4 + 13 + 14 + 20 + 21 + 28 + 29
+"Canine" = 6 + 11 + 22 + 27
+"Incisor" = 7 + 8 + 9 + 10 + 23 + 24 + 25 + 26
+"Upper" = 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 + 11 + 12 + 13 + 14 + 15 + 16
+"Lower" = 17 + 18 + 19 + 20 + 21 + 22 + 23 + 24 + 25 + 26 + 27 + 28 + 29 + 30 + 31 + 32
+"Upper Wisdom" = 1 + 16
+"Lower Wisdom" = 17 + 32
+"Upper Molar" = 2 + 3 + 14 + 15
+"Lower Molar" = 18 + 19 + 30 + 31
+"Upper Premolar" = 3 + 4 + 13 + 14
+"Lower Premolar" = 20 + 21 + 28 + 29
+"Upper Canine" = 6 + 11
+"Lower Canine" = 22 + 27
+"Upper Incisor" = 7 + 8 + 9 + 10
+"Lower Incisor" = 23 + 24 + 25 + 26

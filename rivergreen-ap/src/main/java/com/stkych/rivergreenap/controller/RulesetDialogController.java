@@ -93,14 +93,22 @@ public class RulesetDialogController implements Initializable {
         // Add listener to priority combo box
         priorityComboBox.valueProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue != null) {
-                selectedPriority = newValue;
+                if (newValue.equals("n/a")) {
+                    selectedPriority = "";
+                } else {
+                    selectedPriority = newValue;
+                }
             }
         });
 
         // Add listener to diagnosis combo box
         diagnosisComboBox.valueProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue != null) {
-                selectedDiagnosis = newValue;
+                if (newValue.equals("n/a")) {
+                    selectedDiagnosis = "";
+                } else {
+                    selectedDiagnosis = newValue;
+                }
             }
         });
     }
@@ -315,5 +323,50 @@ public class RulesetDialogController implements Initializable {
      */
     public void setDescription(String description) {
         descriptionLabel.setText(description);
+    }
+
+    /**
+     * Sets the selected teeth from a string representation.
+     * The string format can be tooth numbers separated by hyphens or commas, e.g., "1-2-3-4" or "1, 2, 3, 4".
+     *
+     * @param teethString The string representation of selected teeth
+     */
+    public void setSelectedTeethFromString(String teethString) {
+        // Clear current selections
+        for (CheckBox checkBox : teethCheckboxes) {
+            checkBox.setSelected(false);
+        }
+        selectedTeeth.clear();
+
+        // If the string is empty or null, return
+        if (teethString == null || teethString.isEmpty()) {
+            return;
+        }
+
+        // Split the string by hyphens or commas
+        String[] teethArray;
+        if (teethString.contains(",")) {
+            teethArray = teethString.split(",");
+        } else {
+            teethArray = teethString.split("-");
+        }
+
+        // Select the checkboxes for the specified teeth
+        for (String toothStr : teethArray) {
+            try {
+                int toothNumber = Integer.parseInt(toothStr.trim());
+                // Find the checkbox with this tooth number as userData
+                for (CheckBox checkBox : teethCheckboxes) {
+                    if (checkBox.getUserData().equals(toothNumber)) {
+                        checkBox.setSelected(true);
+                        // The listener will add the tooth to selectedTeeth
+                        break;
+                    }
+                }
+            } catch (NumberFormatException e) {
+                // Skip non-numeric values
+                System.out.println("Skipping non-numeric tooth value: " + toothStr);
+            }
+        }
     }
 }

@@ -179,6 +179,7 @@ public class RiverGreenDB {
         List<String> priorities = getAllPriorities();
         ObservableList<String> observablePriorities = FXCollections.observableArrayList();
         observablePriorities.add("None");
+        observablePriorities.add("n/a");
         observablePriorities.addAll(priorities);
         return observablePriorities;
     }
@@ -298,23 +299,15 @@ public class RiverGreenDB {
      */
     @SuppressWarnings("t")
     public static Map<String, Object> updateTreatmentPlanProcedures(int patientNumber, List<TreatmentPlanProcedure> procedures) {
-        System.out.println("[DEBUG_LOG] Starting updateTreatmentPlanProcedures for Patient #" + patientNumber + " with " + (procedures != null ? procedures.size() : 0) + " procedures");
-
         // Check database connection and permissions
         try (Connection conn = getConnection()) {
-            System.out.println("[DEBUG_LOG] Testing database connection and permissions...");
             try (Statement stmt = conn.createStatement()) {
                 // Test if we can update the procedurelog table
                 stmt.execute("SELECT 1 FROM procedurelog LIMIT 1");
                 // Test if we can access the treatplanattach table
                 stmt.execute("SELECT 1 FROM treatplanattach LIMIT 1");
-                System.out.println("[DEBUG_LOG] Database connection and permissions verified.");
             }
         } catch (SQLException e) {
-            System.out.println("[DEBUG_LOG] Database connection or permissions error: " + e.getMessage());
-            System.out.println("[DEBUG_LOG] SQL State: " + e.getSQLState());
-            System.out.println("[DEBUG_LOG] Error Code: " + e.getErrorCode());
-
             Map<String, Object> results = new HashMap<>();
             results.put("successCount", 0);
             results.put("failureCount", 0);
@@ -325,7 +318,6 @@ public class RiverGreenDB {
         }
 
         if (procedures == null || procedures.isEmpty()) {
-            System.out.println("[DEBUG_LOG] No procedures to update for Patient #" + patientNumber + ", returning early");
             Map<String, Object> results = new HashMap<>();
             results.put("successCount", 0);
             results.put("failureCount", 0);
@@ -341,12 +333,10 @@ public class RiverGreenDB {
         List<String> sqlQueries = new ArrayList<>();
 
         // Generate SQL update queries for each procedure
-        System.out.println("[DEBUG_LOG] Starting SQL generation for " + procedures.size() + " procedures");
         for (TreatmentPlanProcedure procedure : procedures) {
             try {
                 // Get the procedure number (primary key)
                 int procNum = procedure.getProcedureNumber();
-                System.out.println("[DEBUG_LOG] Generating SQL for procedure #" + procNum);
 
                 // Get the values that need updating
                 String priorityName = escapeSql(procedure.getPriority());
@@ -355,13 +345,6 @@ public class RiverGreenDB {
                 String procCode = escapeSql(procedure.getProcedureCode());
                 String diagnosis = escapeSql(procedure.getDiagnosis());
                 double fee = procedure.getFee();
-
-                System.out.println("[DEBUG_LOG] Procedure values: Priority=" + priorityName + 
-                                  ", ToothNum=" + toothNum + 
-                                  ", Surface=" + surface + 
-                                  ", ProcCode=" + procCode + 
-                                  ", Diagnosis=" + diagnosis + 
-                                  ", Fee=" + fee);
 
                 // Create a comprehensive update query for procedurelog
                 StringBuilder queryBuilder = new StringBuilder();
@@ -416,7 +399,6 @@ public class RiverGreenDB {
                 // Add the procedurelog update query to the list
                 String finalQuery = queryBuilder.toString();
                 sqlQueries.add(finalQuery);
-                System.out.println("[DEBUG_LOG] Added procedurelog update query for procedure #" + procNum + " to the list");
 
                 // Create an update query for treatplanattach
                 // This ensures that the procedure is properly linked to the treatment plan
@@ -439,15 +421,11 @@ public class RiverGreenDB {
                 // Add the treatplanattach update query to the list
                 String tpaFinalQuery = tpaQueryBuilder.toString();
                 sqlQueries.add(tpaFinalQuery);
-                System.out.println("[DEBUG_LOG] Added treatplanattach update query for procedure #" + procNum + " to the list");
 
             } catch (Exception e) {
                 System.err.println("Error generating SQL for procedure: " + e.getMessage());
-                System.out.println("[DEBUG_LOG] Error generating SQL for procedure #" + procedure.getProcedureNumber() + ": " + e.getMessage());
             }
         }
-
-        System.out.println("[DEBUG_LOG] SQL generation complete. Generated " + sqlQueries.size() + " SQL queries for Patient #" + patientNumber);
 
         // Print all SQL queries with patient information
         System.out.println("Generated " + sqlQueries.size() + " SQL queries for Patient #" + patientNumber + ":");
@@ -456,18 +434,10 @@ public class RiverGreenDB {
         }
 
         // Execute the queries and get the results
-        System.out.println("[DEBUG_LOG] Starting execution of " + sqlQueries.size() + " SQL queries for Patient #" + patientNumber);
         Map<String, Object> results = executeUpdateQueries(sqlQueries);
 
         // Add the generated SQL queries to the results
         results.put("sqlQueries", sqlQueries);
-
-        // Log the results
-        String status = (String) results.get("status");
-        int successCount = (int) results.get("successCount");
-        int failureCount = (int) results.get("failureCount");
-        System.out.println("[DEBUG_LOG] SQL execution complete for Patient #" + patientNumber + ". Status: " + status + 
-                          ", Success: " + successCount + ", Failure: " + failureCount);
 
         return results;
     }
@@ -523,26 +493,22 @@ public class RiverGreenDB {
                 int rowsAffected = stmt.executeUpdate(sql);
                 conn.commit();  // Commit each successful query
                 successCount++;
-                System.out.println("[DEBUG_LOG] Query " + (i + 1) + " executed successfully. Rows affected: " + rowsAffected);
             } catch (SQLException e) {
                 conn.rollback();  // Rollback failed query
                 errorMessages.add("Query " + (i + 1) + ": " + e.getMessage());
                 failureCount++;
-                System.out.println("[DEBUG_LOG] Query " + (i + 1) + " failed: " + e.getMessage());
             }
         }
     } catch (SQLException e) {
         errorMessages.add("Database connection error: " + e.getMessage());
-        System.out.println("[DEBUG_LOG] Database connection error: " + e.getMessage());
         return createResultMap(0, sqlQueries.size(), errorMessages, "connection_error");
     } finally {
         if (conn != null) {
             try {
                 conn.setAutoCommit(true);  // Reset autoCommit to true
                 conn.close();
-                System.out.println("[DEBUG_LOG] Database connection closed and autoCommit reset to true");
             } catch (SQLException e) {
-                System.out.println("[DEBUG_LOG] Error closing connection: " + e.getMessage());
+                // Silently handle connection closing errors
             }
         }
     }

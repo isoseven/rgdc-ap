@@ -1,5 +1,6 @@
 package com.stkych.rivergreenap;
 
+import com.stkych.rivergreenap.util.FileUtils;
 import javafx.application.Application;
 import javafx.stage.Stage;
 
@@ -22,6 +23,9 @@ public class RiverGreenApplication extends Application {
      */
     @Override
     public void start(Stage stage) throws IOException {
+        // Migrate ruleset files from the current directory to the ruleset directory
+        FileUtils.migrateRulesetFiles();
+
         if (patientNumber != -1) {
             // Initialize the SceneSwitcher with the primary stage
             SceneSwitcher.initialize(stage);

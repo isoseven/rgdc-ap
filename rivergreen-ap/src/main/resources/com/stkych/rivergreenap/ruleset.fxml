@@ -17,7 +17,7 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<VBox maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="800.0" prefWidth="1100.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.stkych.rivergreenap.controller.ControllerRuleset">
+<VBox maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="800.0" prefWidth="1100.0" xmlns="http://javafx.com/javafx/17.0.2" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.stkych.rivergreenap.controller.ControllerRuleset">
    <children>
       <MenuBar>
          <menus>
@@ -68,7 +68,7 @@
                   <Separator prefWidth="200.0" />
                   <Pane prefHeight="519.0" prefWidth="271.0">
                      <children>
-                        <Button fx:id="editButton1" alignment="CENTER" layoutX="90.0" layoutY="14.0" mnemonicParsing="false" onAction="#handleEditButtonAction" prefHeight="25.0" prefWidth="92.0" text="Edit Ruleset" />
+                        <Button fx:id="editButton1" alignment="CENTER" layoutX="90.0" layoutY="14.0" mnemonicParsing="false" onAction="#handleEditRulesetButtonAction" prefHeight="25.0" prefWidth="92.0" text="Edit Ruleset" />
                      </children></Pane>
                   <GridPane>
                      <columnConstraints>

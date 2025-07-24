@@ -69,7 +69,7 @@ public class RulesetItemListCell extends ListCell<RulesetItem> {
 
             // Set the diagnosis and description
             String description = item.getDescription();
-            diagnosisLabel.setText(item.getProcedureCode()); // Use procedure code as diagnosis for now
+            diagnosisLabel.setText(item.getDiagnosis()); // Use the actual diagnosis
             descriptionLabel.setText(description);
 
             // Set the graphic to the gridPane

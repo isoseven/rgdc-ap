@@ -6,6 +6,7 @@ import com.stkych.rivergreenap.archive.controller.ControllerOld;
 import com.stkych.rivergreenap.controller.cells.TreatmentPlanProcedureCellFactory;
 import com.stkych.rivergreenap.model.RulesetItem;
 import com.stkych.rivergreenap.model.TreatmentPlanProcedure;
+import com.stkych.rivergreenap.util.FileUtils;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -73,6 +74,9 @@ public class ControllerMain extends ControllerOld {
     private MenuButton rulesetSelectMenuButton;
 
     private ObservableList<TreatmentPlanProcedure> procedures = FXCollections.observableArrayList();
+
+    // Store a copy of the initial data for reset functionality
+    private List<TreatmentPlanProcedure> initialProcedures = new ArrayList<>();
 
     private final Map<String, List<RulesetItem>> rulesets = new HashMap<>();
     private String currentRuleset = "";
@@ -176,11 +180,8 @@ public class ControllerMain extends ControllerOld {
      * @throws SQLException If a database error occurs during the data retrieval process
      */
     private void loadProceduresForPatient(int patientNumber) throws SQLException {
-        System.out.println("Loading procedures for patient " + patientNumber + " using RiverGreenDB");
-
         // Get procedures for the patient using the RiverGreenDB class
         ObservableList<TreatmentPlanProcedure> loadedProcedures = RiverGreenDB.getProceduresForPatientObservable(patientNumber);
-        System.out.println("Retrieved " + loadedProcedures.size() + " procedures for patient " + patientNumber);
 
         // Create a new list with the header item at the beginning
         ObservableList<TreatmentPlanProcedure> proceduresWithHeader = FXCollections.observableArrayList();
@@ -195,6 +196,23 @@ public class ControllerMain extends ControllerOld {
 
         // Set the items in the list view
         procedures.setAll(proceduresWithHeader);
+
+        // Store a deep copy of the initial data for reset functionality
+        initialProcedures.clear();
+        for (TreatmentPlanProcedure procedure : proceduresWithHeader) {
+            // Create a new TreatmentPlanProcedure with the same values
+            TreatmentPlanProcedure copy = new TreatmentPlanProcedure(
+                procedure.getPriority(),
+                procedure.getToothNumber(),
+                procedure.getSurface(),
+                procedure.getProcedureCode(),
+                procedure.getDiagnosis(),
+                procedure.getDescription(),
+                procedure.getFee(),
+                procedure.getProcedureNumber()
+            );
+            initialProcedures.add(copy);
+        }
     }
 
     /**
@@ -321,31 +339,19 @@ public class ControllerMain extends ControllerOld {
     /**
      * Handles the action event triggered by the "Ok" button.
      * Reads all list items, updates the procedures in the database, and prints the results.
-     * If the "Create New Copy" checkbox is checked, creates a new treatment plan instead of updating the existing one.
+     * This is where database updates happen - changes made by applying rulesets are not saved until this method is called.
      */
     @FXML
     private void handleOkButtonAction() {
-        System.out.println("OK button clicked");
+        // Call the saveChangesToDatabase method to save all changes
+        saveChangesToDatabase();
 
-        // Get the patient number from the data cache
-        Integer patientNumber = (Integer) SceneSwitcher.getData("patientNumber");
-        if (patientNumber == null) {
-            System.out.println("No patient number found. Cannot update procedures.");
-            return;
-        }
-
-        // Get all items from the list view (excluding the header)
-        List<TreatmentPlanProcedure> allProcedures = new ArrayList<>();
-        for (int i = 1; i < listView.getItems().size(); i++) { // Start from 1 to skip header
-            allProcedures.add(listView.getItems().get(i));
-        }
-
-        if (allProcedures.isEmpty()) {
-            System.out.println("No procedures found for Patient #" + patientNumber);
-            return;
-        }
-
-        updateExistingTreatmentPlan(patientNumber, allProcedures);
+        // Show a confirmation message to the user
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Changes Saved");
+        alert.setHeaderText(null);
+        alert.setContentText("All changes have been saved to the database.");
+        alert.showAndWait();
     }
 
     /**
@@ -405,7 +411,6 @@ public class ControllerMain extends ControllerOld {
      */
     @FXML
     private void handleRulesetButtonAction() {
-        System.out.println("Ruleset button clicked");
         try {
             SceneSwitcher.switchScene("ruleset", "Ruleset Configuration");
         } catch (IOException e) {
@@ -475,28 +480,51 @@ public class ControllerMain extends ControllerOld {
                     return;
                 }
 
-                try {
-                    // Reload procedures for the patient (this will reset to the original state)
-                    loadProceduresForPatient(patientNumber);
+                // Check if we have stored initial data
+                if (initialProcedures.isEmpty()) {
+                    try {
+                        // Reload procedures for the patient (this will reset to the original state)
+                        loadProceduresForPatient(patientNumber);
+                    } catch (SQLException e) {
+                        handleError(e);
+                        return;
+                    }
+                } else {
+                    // Create a deep copy of the initial data to avoid modifying it
+                    ObservableList<TreatmentPlanProcedure> resetProcedures = FXCollections.observableArrayList();
+                    for (TreatmentPlanProcedure procedure : initialProcedures) {
+                        // Create a new TreatmentPlanProcedure with the same values
+                        TreatmentPlanProcedure copy = new TreatmentPlanProcedure(
+                            procedure.getPriority(),
+                            procedure.getToothNumber(),
+                            procedure.getSurface(),
+                            procedure.getProcedureCode(),
+                            procedure.getDiagnosis(),
+                            procedure.getDescription(),
+                            procedure.getFee(),
+                            procedure.getProcedureNumber()
+                        );
+                        resetProcedures.add(copy);
+                    }
 
-                    // Clear the priority and diagnosis list views
-                    priorityListView.getItems().clear();
-                    diagnosisListView.getItems().clear();
-
-                    // Reinitialize the list views
-                    setupPriorityListView();
-                    setupDiagnosisListView();
-
-                    // Show success message
-                    Alert successAlert = new Alert(Alert.AlertType.INFORMATION);
-                    successAlert.setTitle("Reset Complete");
-                    successAlert.setHeaderText(null);
-                    successAlert.setContentText("All priorities and diagnosis have been reset.");
-                    successAlert.showAndWait();
-
-                } catch (SQLException e) {
-                    handleError(e);
+                    // Set the items in the list view
+                    procedures.setAll(resetProcedures);
                 }
+
+                // Clear the priority and diagnosis list views
+                priorityListView.getItems().clear();
+                diagnosisListView.getItems().clear();
+
+                // Reinitialize the list views
+                setupPriorityListView();
+                setupDiagnosisListView();
+
+                // Show success message
+                Alert successAlert = new Alert(Alert.AlertType.INFORMATION);
+                successAlert.setTitle("Reset Complete");
+                successAlert.setHeaderText(null);
+                successAlert.setContentText("All priorities and diagnosis have been reset.");
+                successAlert.showAndWait();
             }
         });
     }
@@ -561,14 +589,15 @@ public class ControllerMain extends ControllerOld {
      * No longer creates default rulesets if none are found.
      */
     private void loadRulesets() {
-        System.out.println("Loading rulesets");
-
         // Clear existing rulesets
         rulesets.clear();
 
-        // Look for ruleset files
-        File currentDir = new File(".");
-        File[] files = currentDir.listFiles((dir, name) -> name.startsWith("ruleset") && name.endsWith(".csv"));
+        // Migrate ruleset files from the current directory to the ruleset directory
+        FileUtils.migrateRulesetFiles();
+
+        // Look for ruleset files in the ruleset directory
+        File rulesetDir = FileUtils.getRulesetDirectory();
+        File[] files = rulesetDir.listFiles((dir, name) -> name.startsWith("ruleset") && name.endsWith(".csv"));
 
         if (files != null) {
             for (File file : files) {
@@ -577,7 +606,7 @@ public class ControllerMain extends ControllerOld {
                 String rulesetName = filename.substring(7, filename.length() - 4);
 
                 // Load the ruleset
-                List<RulesetItem> rulesetItems = loadRulesetFromFile(filename);
+                List<RulesetItem> rulesetItems = loadRulesetFromFile(file.getAbsolutePath());
                 if (!rulesetItems.isEmpty()) {
                     rulesets.put(rulesetName, rulesetItems);
                 }
@@ -593,32 +622,83 @@ public class ControllerMain extends ControllerOld {
     /**
      * Loads a ruleset from a CSV file.
      *
-     * @param filename The name of the CSV file
+     * @param filepath The path to the CSV file (can be absolute or relative)
      * @return The list of ruleset items
      */
-    private List<RulesetItem> loadRulesetFromFile(String filename) {
+    private List<RulesetItem> loadRulesetFromFile(String filepath) {
         List<RulesetItem> items = new ArrayList<>();
-        File file = new File(filename);
+        File file = new File(filepath);
 
         if (!file.exists()) {
             // Add a header item
-            items.add(new RulesetItem("Header", "Header"));
+            items.add(new RulesetItem("Header", "Header", "Description", "Teeth"));
             return items;
         }
 
         try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
             // Add a header item
-            items.add(new RulesetItem("Header", "Header"));
+            items.add(new RulesetItem("Header", "Header", "Description", "Teeth"));
 
             String line;
             while ((line = reader.readLine()) != null) {
+                // Split by comma
                 String[] parts = line.split(",");
-                if (parts.length == 2) {
-                    items.add(new RulesetItem(parts[0], parts[1]));
+
+                if (parts.length >= 2) {
+                    String priority = parts[0];
+                    String procedureCode = parts[1];
+                    String teethNumbers = "";
+                    String diagnosis = "";
+
+                    // If there are more than 2 parts, the rest are teeth numbers and diagnosis
+                    if (parts.length > 2) {
+                        // If there are exactly 3 parts, the third part could be either teeth numbers or diagnosis
+                        if (parts.length == 3) {
+                            String thirdPart = parts[2].trim();
+                            // Check if the third part contains hyphens, which would indicate teeth numbers
+                            if (thirdPart.contains("-")) {
+                                teethNumbers = thirdPart;
+                            } else {
+                                // If it doesn't contain hyphens, it's probably a diagnosis
+                                diagnosis = thirdPart;
+                            }
+                        } 
+                        // If there are 4 or more parts, the third part is teeth numbers and the fourth part is diagnosis
+                        else if (parts.length >= 4) {
+                            teethNumbers = parts[2].trim();
+
+                            // Diagnosis is all parts from index 3 to the end
+                            StringBuilder diagnosisBuilder = new StringBuilder();
+                            for (int i = 3; i < parts.length; i++) {
+                                if (i > 3) diagnosisBuilder.append(",");
+                                diagnosisBuilder.append(parts[i].trim());
+                            }
+                            diagnosis = diagnosisBuilder.toString();
+                        } else {
+                            // This should never happen, but just in case
+                            teethNumbers = "";
+                            diagnosis = "";
+                        }
+                    }
+
+                    // Always fetch description from the database
+                    String description = "";
+                    try {
+                        description = RiverGreenDB.getProcedureCodeDescription(procedureCode);
+                    } catch (SQLException e) {
+                        // If there's an error, use an empty description
+                        System.out.println("Error getting procedure description: " + e.getMessage());
+                    }
+
+                    RulesetItem item = new RulesetItem(priority, procedureCode, description, teethNumbers);
+                    if (!diagnosis.isEmpty()) {
+                        item.setDiagnosis(diagnosis);
+                    }
+                    items.add(item);
                 }
             }
         } catch (IOException e) {
-            System.out.println("Error loading ruleset from file " + filename + ": " + e.getMessage());
+            System.out.println("Error loading ruleset from file " + filepath + ": " + e.getMessage());
             e.printStackTrace();
         }
 
@@ -645,6 +725,8 @@ public class ControllerMain extends ControllerOld {
             item.setOnAction(event -> {
                 currentRuleset = rulesetName;
                 rulesetSelectMenuButton.setText("Ruleset " + rulesetName);
+
+                // Apply the ruleset (without saving to database)
                 applyRuleset(currentRuleset);
             });
 
@@ -659,6 +741,10 @@ public class ControllerMain extends ControllerOld {
             currentRuleset = firstRuleset;
             rulesetSelectMenuButton.setText("Ruleset " + firstRuleset);
             rulesetSelectMenuButton.setDisable(false);
+
+            // Don't automatically apply the default ruleset when the application starts
+            // This prevents automatic database updates on startup
+            // applyRuleset(currentRuleset);  // Commented out to prevent automatic application
         } else {
             rulesetSelectMenuButton.setText("No Rulesets Available");
             rulesetSelectMenuButton.setDisable(true);
@@ -673,10 +759,7 @@ public class ControllerMain extends ControllerOld {
      * @param rulesetName The name of the ruleset to apply
      */
     private void applyRuleset(String rulesetName) {
-        System.out.println("Applying ruleset " + rulesetName);
-
         if (!rulesets.containsKey(rulesetName)) {
-            System.out.println("Ruleset " + rulesetName + " not found");
             return;
         }
 
@@ -689,20 +772,24 @@ public class ControllerMain extends ControllerOld {
             String priority = item.getPriority();
             String diagnosis = item.getDiagnosis();
 
-            // If diagnosis is empty, use description as fallback
-            if (diagnosis == null || diagnosis.isEmpty()) {
-                diagnosis = item.getDescription();
-            }
+            // Only use diagnosis if it's explicitly specified in the ruleset
+            // Don't use description as fallback
 
             // Get teeth information from the teethNumbers property
             List<String> ruleTeeth = new ArrayList<>();
             String teethNumbers = item.getTeethNumbers();
             if (teethNumbers != null && !teethNumbers.isEmpty()) {
-                String[] teeth = teethNumbers.split(",");
+                // Use hyphens as the delimiter, not commas
+                // This is important because teeth numbers are stored with hyphens in the CSV file
+                // and loaded with hyphens in the loadRulesetFromFile method
+                String[] teeth = teethNumbers.split("-");
                 for (String tooth : teeth) {
                     ruleTeeth.add(tooth.trim());
                 }
             }
+
+            // Counter for tracking how many items this rule is applied to
+            int appliedCount = 0;
 
             // Update the priority and diagnosis of procedures with matching procedure code and teeth
             for (int j = 1; j < procedures.size(); j++) { // Skip the header item (index 0)
@@ -721,6 +808,8 @@ public class ControllerMain extends ControllerOld {
                             if (diagnosis != null && !diagnosis.isEmpty()) {
                                 procedure.setDiagnosis(diagnosis);
                             }
+
+                            appliedCount++;
                         }
                     } else {
                         // If the rule doesn't specify teeth, update all procedures with matching code
@@ -730,12 +819,50 @@ public class ControllerMain extends ControllerOld {
                         if (diagnosis != null && !diagnosis.isEmpty()) {
                             procedure.setDiagnosis(diagnosis);
                         }
+
+                        appliedCount++;
                     }
                 }
             }
+
         }
 
         // Refresh the list view to show the updated priorities and diagnoses
+        listView.refresh();
+
+        // No longer automatically save changes to the database
+        // saveChangesToDatabase();
+    }
+
+    /**
+     * Saves the current procedures to the database.
+     * This method is called when the user clicks the 'Ok' button.
+     */
+    private void saveChangesToDatabase() {
+        // Get the patient number from the data cache
+        Integer patientNumber = (Integer) SceneSwitcher.getData("patientNumber");
+        if (patientNumber == null) {
+            return;
+        }
+
+        // Get all items from the list view (excluding the header)
+        List<TreatmentPlanProcedure> allProcedures = new ArrayList<>();
+        for (int i = 1; i < listView.getItems().size(); i++) { // Start from 1 to skip header
+            TreatmentPlanProcedure procedure = listView.getItems().get(i);
+            allProcedures.add(procedure);
+        }
+
+        if (allProcedures.isEmpty()) {
+            return;
+        }
+
+        // Update the existing treatment plan
+        updateExistingTreatmentPlan(patientNumber, allProcedures);
+
+        // Don't reload the procedures from the database after saving
+        // This prevents the priorities from being lost during the reload
+
+        // Instead, just refresh the list view to show the updated priorities
         listView.refresh();
     }
 
@@ -785,7 +912,6 @@ public class ControllerMain extends ControllerOld {
      * This allows users to select multiple items by dragging, Ctrl+Click, or Shift+Click.
      */
     private void setupMultiSelect() {
-        System.out.println("[DEBUG] setupMultiSelect() called");
         // Set up mouse event handlers for drag selection
         listView.setOnMousePressed(this::handleMousePressed);
         listView.setOnMouseDragged(this::handleMouseDragged);
@@ -803,14 +929,11 @@ public class ControllerMain extends ControllerOld {
     private void handleMouseClicked(MouseEvent event) {
         // Check if it's a double-click
         if (event.getClickCount() == 2) {
-            System.out.println("[DEBUG] Double-click detected");
-
             // Get the item index at the mouse position
             int itemIndex = getListItemIndex(event);
 
             // Skip if it's the header item (index 0) or an invalid index
             if (itemIndex <= 0 || itemIndex >= listView.getItems().size()) {
-                System.out.println("[DEBUG] Skipping header item or invalid index: " + itemIndex);
                 return;
             }
 
@@ -822,11 +945,8 @@ public class ControllerMain extends ControllerOld {
 
             // Skip if the tooth number is null or empty
             if (toothNumber == null || toothNumber.isEmpty()) {
-                System.out.println("[DEBUG] Skipping item with null or empty tooth number");
                 return;
             }
-
-            System.out.println("[DEBUG] Selecting all items with tooth number: " + toothNumber);
 
             // Clear previous selection
             listView.getSelectionModel().clearSelection();
@@ -836,7 +956,6 @@ public class ControllerMain extends ControllerOld {
                 TreatmentPlanProcedure item = listView.getItems().get(i);
                 if (toothNumber.equals(item.getToothNumber())) {
                     listView.getSelectionModel().select(i);
-                    System.out.println("[DEBUG] Selected item at index " + i + " with tooth number " + toothNumber);
                 }
             }
 
@@ -851,15 +970,11 @@ public class ControllerMain extends ControllerOld {
      * @param event The mouse event
      */
     private void handleMousePressed(MouseEvent event) {
-        System.out.println("[DEBUG] handleMousePressed() called, Y position: " + event.getY());
-
         // Get the item index at the mouse position using the direct method
         int itemIndex = getListItemIndex(event);
-        System.out.println("[DEBUG] Item index at position (direct lookup): " + itemIndex);
 
         // Always skip the header item (index 0)
         if (itemIndex == 0) {
-            System.out.println("[DEBUG] Skipping header item (index 0)");
             return;
         }
 
@@ -868,24 +983,17 @@ public class ControllerMain extends ControllerOld {
             dragStartIndex = itemIndex;
             dragStartY = event.getY(); // Store the initial Y position for backward compatibility
             isDragging = true;
-            System.out.println("[DEBUG] Starting drag selection at index: " + dragStartIndex);
 
             // If not holding Ctrl or Shift, clear previous selection
             if (!event.isControlDown() && !event.isShiftDown()) {
-                System.out.println("[DEBUG] Clearing previous selection (no Ctrl/Shift)");
                 listView.getSelectionModel().clearSelection();
-            } else {
-                System.out.println("[DEBUG] Keeping previous selection (Ctrl/Shift pressed)");
             }
 
             // Select the clicked item
             listView.getSelectionModel().select(itemIndex);
-            System.out.println("[DEBUG] Selected item at index: " + itemIndex);
 
             // Consume the event to prevent default handling
             event.consume();
-        } else {
-            System.out.println("[DEBUG] Invalid item index: " + itemIndex);
         }
     }
 
@@ -977,11 +1085,8 @@ public class ControllerMain extends ControllerOld {
      * @param event The mouse event
      */
     private void handleMouseReleased(MouseEvent event) {
-        System.out.println("[DEBUG] handleMouseReleased() called, Y position: " + event.getY());
-
         // Get the final item index at release position
         int finalIndex = getListItemIndex(event);
-        System.out.println("[DEBUG] Final item index at release position: " + finalIndex);
 
         // End drag selection
         boolean wasDragging = isDragging;
@@ -989,11 +1094,6 @@ public class ControllerMain extends ControllerOld {
 
         isDragging = false;
         dragStartY = -1; // Reset the drag start Y position for backward compatibility
-
-        System.out.println("[DEBUG] Drag selection ended. Was dragging: " + wasDragging + 
-                           ", Start index: " + previousDragStartIndex + 
-                           ", End index: " + finalIndex + 
-                           ", Selected items count: " + listView.getSelectionModel().getSelectedIndices().size());
 
         // Consume the event to prevent default handling
         event.consume();
@@ -1133,8 +1233,6 @@ public class ControllerMain extends ControllerOld {
 
         // Apply the font size
         label.setStyle("-fx-font-size: " + fontSize + "px; -fx-text-overrun: ellipsis; -fx-text-alignment: center;");
-
-        System.out.println("Adjusted font size for '" + text + "' to " + fontSize + "px");
     }
 
     /**

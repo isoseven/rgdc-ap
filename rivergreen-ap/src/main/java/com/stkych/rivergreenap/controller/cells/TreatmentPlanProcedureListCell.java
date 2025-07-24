@@ -65,6 +65,7 @@ public class TreatmentPlanProcedureListCell extends ListCell<TreatmentPlanProced
             setText(null);
             setGraphic(null);
         } else {
+
             // Set the text of each label to the corresponding property of the item
             // The order matches the visual order in main_column.fxml
             priorityLabel.setText(item.getPriority());

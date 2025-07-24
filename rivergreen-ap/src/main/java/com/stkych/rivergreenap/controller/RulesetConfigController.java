@@ -11,6 +11,7 @@ import javafx.scene.control.ButtonType;
 import javafx.scene.control.ListView;
 import javafx.stage.Stage;
 
+import com.stkych.rivergreenap.util.FileUtils;
 import java.io.*;
 import java.net.URL;
 import java.util.*;
@@ -65,9 +66,12 @@ public class RulesetConfigController implements Initializable {
     private void loadRulesets() {
         rulesets.clear();
 
-        // Look for ruleset files
-        File currentDir = new File(".");
-        File[] files = currentDir.listFiles((dir, name) -> name.startsWith("ruleset") && name.endsWith(".csv"));
+        // Migrate ruleset files from the current directory to the ruleset directory
+        FileUtils.migrateRulesetFiles();
+
+        // Look for ruleset files in the ruleset directory
+        File rulesetDir = FileUtils.getRulesetDirectory();
+        File[] files = rulesetDir.listFiles((dir, name) -> name.startsWith("ruleset") && name.endsWith(".csv"));
 
         if (files != null) {
             for (File file : files) {
@@ -129,8 +133,7 @@ public class RulesetConfigController implements Initializable {
      * @param rulesetName The name of the ruleset
      */
     private void createEmptyRulesetFile(String rulesetName) {
-        String filename = "ruleset" + rulesetName + ".csv";
-        File file = new File(filename);
+        File file = FileUtils.getRulesetFile(rulesetName);
 
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
             // The file is created empty
@@ -196,8 +199,8 @@ public class RulesetConfigController implements Initializable {
      * @param newName The new name of the ruleset
      */
     private void renameRulesetFile(String oldName, String newName) {
-        File oldFile = new File("ruleset" + oldName + ".csv");
-        File newFile = new File("ruleset" + newName + ".csv");
+        File oldFile = FileUtils.getRulesetFile(oldName);
+        File newFile = FileUtils.getRulesetFile(newName);
 
         if (oldFile.exists()) {
             if (oldFile.renameTo(newFile)) {
@@ -245,7 +248,7 @@ public class RulesetConfigController implements Initializable {
      * @param rulesetName The name of the ruleset to delete
      */
     private void deleteRulesetFile(String rulesetName) {
-        File file = new File("ruleset" + rulesetName + ".csv");
+        File file = FileUtils.getRulesetFile(rulesetName);
 
         if (file.exists()) {
             if (file.delete()) {
