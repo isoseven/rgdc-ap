@@ -33,6 +33,10 @@ public class TeethNotationUtil {
     private static final Set<Integer> LEFT = new HashSet<>();
     private static final Set<Integer> RIGHT = new HashSet<>();
 
+    // Mapping of shorthand names to tooth sets
+    private static final Map<String, Set<Integer>> SHORTHAND_SETS = new LinkedHashMap<>();
+    private static final List<String> TYPE_NAMES = Arrays.asList("Wisdom", "Molar", "Premolar", "Canine", "Incisor");
+
     static {
         // Initialize UPPER (1-16)
         for (int i = 1; i <= 16; i++) {
@@ -56,6 +60,24 @@ public class TeethNotationUtil {
         for (int i = 25; i <= 32; i++) {
             RIGHT.add(i);
         }
+
+        // Populate shorthand mappings
+        SHORTHAND_SETS.put("Upper Wisdom", UPPER_WISDOM);
+        SHORTHAND_SETS.put("Lower Wisdom", LOWER_WISDOM);
+        SHORTHAND_SETS.put("Upper Molar", UPPER_MOLAR);
+        SHORTHAND_SETS.put("Lower Molar", LOWER_MOLAR);
+        SHORTHAND_SETS.put("Upper Premolar", UPPER_PREMOLAR);
+        SHORTHAND_SETS.put("Lower Premolar", LOWER_PREMOLAR);
+        SHORTHAND_SETS.put("Upper Canine", UPPER_CANINE);
+        SHORTHAND_SETS.put("Lower Canine", LOWER_CANINE);
+        SHORTHAND_SETS.put("Upper Incisor", UPPER_INCISOR);
+        SHORTHAND_SETS.put("Lower Incisor", LOWER_INCISOR);
+
+        SHORTHAND_SETS.put("Wisdom", WISDOM);
+        SHORTHAND_SETS.put("Molar", MOLAR);
+        SHORTHAND_SETS.put("Premolar", PREMOLAR);
+        SHORTHAND_SETS.put("Canine", CANINE);
+        SHORTHAND_SETS.put("Incisor", INCISOR);
     }
 
     /**
@@ -69,144 +91,86 @@ public class TeethNotationUtil {
             return "";
         }
 
-        // Parse the teeth numbers
+        Set<Integer> teeth = parseTeethNumbers(teethNumbers);
+        if (teeth == null) {
+            return teethNumbers;
+        }
+
+        String exact = matchExactSet(teeth);
+        if (exact != null) {
+            return exact;
+        }
+
+        List<String> typeMatches = collectTypeMatches(teeth);
+        List<String> locationMatches = collectLocationMatches(teeth);
+
+        String result = buildResult(locationMatches, typeMatches);
+        return result.isEmpty() ? teethNumbers : result;
+    }
+
+    private static Set<Integer> parseTeethNumbers(String teethNumbers) {
         Set<Integer> teeth = new HashSet<>();
         for (String tooth : teethNumbers.split("-")) {
             try {
                 teeth.add(Integer.parseInt(tooth.trim()));
             } catch (NumberFormatException e) {
-                // If any part is not a number, return the original string
-                return teethNumbers;
+                return null;
             }
         }
+        return teeth;
+    }
 
-        // Check for exact matches with combined sets from shorthand.txt
-        if (teeth.equals(UPPER_WISDOM)) {
-            return "Upper Wisdom";
-        }
-        if (teeth.equals(LOWER_WISDOM)) {
-            return "Lower Wisdom";
-        }
-        if (teeth.equals(UPPER_MOLAR)) {
-            return "Upper Molar";
-        }
-        if (teeth.equals(LOWER_MOLAR)) {
-            return "Lower Molar";
-        }
-        if (teeth.equals(UPPER_PREMOLAR)) {
-            return "Upper Premolar";
-        }
-        if (teeth.equals(LOWER_PREMOLAR)) {
-            return "Lower Premolar";
-        }
-        if (teeth.equals(UPPER_CANINE)) {
-            return "Upper Canine";
-        }
-        if (teeth.equals(LOWER_CANINE)) {
-            return "Lower Canine";
-        }
-        if (teeth.equals(UPPER_INCISOR)) {
-            return "Upper Incisor";
-        }
-        if (teeth.equals(LOWER_INCISOR)) {
-            return "Lower Incisor";
-        }
-
-        // Check for type sets
-        List<String> typeMatches = new ArrayList<>();
-        if (teeth.equals(WISDOM)) {
-            return "Wisdom";
-        }
-        if (teeth.equals(MOLAR)) {
-            return "Molar";
-        }
-        if (teeth.equals(PREMOLAR)) {
-            return "Premolar";
-        }
-        if (teeth.equals(CANINE)) {
-            return "Canine";
-        }
-        if (teeth.equals(INCISOR)) {
-            return "Incisor";
-        }
-
-        // Check for partial type matches
-        if (WISDOM.containsAll(teeth)) {
-            typeMatches.add("Wisdom");
-        }
-        if (MOLAR.containsAll(teeth)) {
-            typeMatches.add("Molar");
-        }
-        if (PREMOLAR.containsAll(teeth)) {
-            typeMatches.add("Premolar");
-        }
-        if (CANINE.containsAll(teeth)) {
-            typeMatches.add("Canine");
-        }
-        if (INCISOR.containsAll(teeth)) {
-            typeMatches.add("Incisor");
-        }
-
-        // Check for location sets
-        List<String> locationMatches = new ArrayList<>();
-        boolean isUpper = true;
-        boolean isLower = true;
-        boolean isLeft = true;
-        boolean isRight = true;
-
-        for (Integer tooth : teeth) {
-            if (!UPPER.contains(tooth)) {
-                isUpper = false;
-            }
-            if (!LOWER.contains(tooth)) {
-                isLower = false;
-            }
-            if (!LEFT.contains(tooth)) {
-                isLeft = false;
-            }
-            if (!RIGHT.contains(tooth)) {
-                isRight = false;
+    private static String matchExactSet(Set<Integer> teeth) {
+        for (Map.Entry<String, Set<Integer>> entry : SHORTHAND_SETS.entrySet()) {
+            if (entry.getValue().equals(teeth)) {
+                return entry.getKey();
             }
         }
+        return null;
+    }
 
-        if (isUpper) {
-            locationMatches.add("Upper");
+    private static List<String> collectTypeMatches(Set<Integer> teeth) {
+        List<String> matches = new ArrayList<>();
+        for (String type : TYPE_NAMES) {
+            if (SHORTHAND_SETS.get(type).containsAll(teeth)) {
+                matches.add(type);
+            }
         }
-        if (isLower) {
-            locationMatches.add("Lower");
-        }
-        if (isLeft) {
-            locationMatches.add("Left");
-        }
-        if (isRight) {
-            locationMatches.add("Right");
-        }
+        return matches;
+    }
 
-        // Combine location and type matches
+    private static List<String> collectLocationMatches(Set<Integer> teeth) {
+        List<String> matches = new ArrayList<>();
+        if (UPPER.containsAll(teeth)) {
+            matches.add("Upper");
+        }
+        if (LOWER.containsAll(teeth)) {
+            matches.add("Lower");
+        }
+        if (LEFT.containsAll(teeth)) {
+            matches.add("Left");
+        }
+        if (RIGHT.containsAll(teeth)) {
+            matches.add("Right");
+        }
+        return matches;
+    }
+
+    private static String buildResult(List<String> locationMatches, List<String> typeMatches) {
         StringBuilder result = new StringBuilder();
-
-        // Add location matches (Upper/Lower goes before Left/Right)
-        if (isUpper) {
+        if (locationMatches.contains("Upper")) {
             result.append("Upper ");
-        } else if (isLower) {
+        } else if (locationMatches.contains("Lower")) {
             result.append("Lower ");
         }
-
-        if (isLeft) {
+        if (locationMatches.contains("Left")) {
             result.append("Left ");
-        } else if (isRight) {
+        } else if (locationMatches.contains("Right")) {
             result.append("Right ");
         }
 
-        // Add type matches
         if (!typeMatches.isEmpty()) {
-            if (result.length() > 0) {
-                result.append(typeMatches.get(0));
-            } else {
-                result.append(typeMatches.get(0));
-            }
-
-            // If there are multiple type matches, combine them
+            result.append(typeMatches.get(0));
             if (typeMatches.size() > 1) {
                 result.append(" + ");
                 result.append(String.join(" + ", typeMatches.subList(1, typeMatches.size())));
@@ -215,9 +179,7 @@ public class TeethNotationUtil {
                 result.append(")");
             }
         }
-
-        // If we have a shorthand notation, return it, otherwise return the original list
-        return result.length() > 0 ? result.toString().trim() : teethNumbers;
+        return result.toString().trim();
     }
 
     /**
@@ -231,147 +193,46 @@ public class TeethNotationUtil {
             return "";
         }
 
-        // Check for exact matches with combined sets from shorthand.txt
-        if (shorthand.equals("Upper Wisdom")) {
-            return setToString(UPPER_WISDOM);
-        }
-        if (shorthand.equals("Lower Wisdom")) {
-            return setToString(LOWER_WISDOM);
-        }
-        if (shorthand.equals("Upper Molar")) {
-            return setToString(UPPER_MOLAR);
-        }
-        if (shorthand.equals("Lower Molar")) {
-            return setToString(LOWER_MOLAR);
-        }
-        if (shorthand.equals("Upper Premolar")) {
-            return setToString(UPPER_PREMOLAR);
-        }
-        if (shorthand.equals("Lower Premolar")) {
-            return setToString(LOWER_PREMOLAR);
-        }
-        if (shorthand.equals("Upper Canine")) {
-            return setToString(UPPER_CANINE);
-        }
-        if (shorthand.equals("Lower Canine")) {
-            return setToString(LOWER_CANINE);
-        }
-        if (shorthand.equals("Upper Incisor")) {
-            return setToString(UPPER_INCISOR);
-        }
-        if (shorthand.equals("Lower Incisor")) {
-            return setToString(LOWER_INCISOR);
+        Set<Integer> direct = SHORTHAND_SETS.get(shorthand);
+        if (direct != null) {
+            return setToString(direct);
         }
 
-        // Check for type sets
-        if (shorthand.equals("Wisdom")) {
-            return setToString(WISDOM);
-        }
-        if (shorthand.equals("Molar")) {
-            return setToString(MOLAR);
-        }
-        if (shorthand.equals("Premolar")) {
-            return setToString(PREMOLAR);
-        }
-        if (shorthand.equals("Canine")) {
-            return setToString(CANINE);
-        }
-        if (shorthand.equals("Incisor")) {
-            return setToString(INCISOR);
-        }
-
-
-        // Check for combined location and type
         Set<Integer> result = new HashSet<>();
-        boolean hasLocation = false;
-        boolean hasType = false;
+        boolean matched = false;
 
-        // Check for location
         if (shorthand.contains("Upper")) {
-            result.addAll(UPPER);
-            hasLocation = true;
+            update(result, UPPER);
+            matched = true;
         } else if (shorthand.contains("Lower")) {
-            result.addAll(LOWER);
-            hasLocation = true;
+            update(result, LOWER);
+            matched = true;
         }
 
         if (shorthand.contains("Left")) {
-            if (hasLocation) {
-                // Intersect with existing result
-                result.retainAll(LEFT);
-            } else {
-                result.addAll(LEFT);
-                hasLocation = true;
-            }
+            update(result, LEFT);
+            matched = true;
         } else if (shorthand.contains("Right")) {
-            if (hasLocation) {
-                // Intersect with existing result
-                result.retainAll(RIGHT);
-            } else {
-                result.addAll(RIGHT);
-                hasLocation = true;
+            update(result, RIGHT);
+            matched = true;
+        }
+
+        for (String type : TYPE_NAMES) {
+            if (shorthand.contains(type)) {
+                update(result, SHORTHAND_SETS.get(type));
+                matched = true;
             }
         }
 
-        // Check for type
-        if (shorthand.contains("Wisdom")) {
-            if (hasLocation) {
-                // Intersect with existing result
-                Set<Integer> intersection = new HashSet<>(result);
-                intersection.retainAll(WISDOM);
-                result = intersection;
-            } else {
-                result.addAll(WISDOM);
-            }
-            hasType = true;
-        }
-        if (shorthand.contains("Molar")) {
-            if (hasLocation || hasType) {
-                // Intersect with existing result
-                Set<Integer> intersection = new HashSet<>(result);
-                intersection.retainAll(MOLAR);
-                result = intersection;
-            } else {
-                result.addAll(MOLAR);
-            }
-            hasType = true;
-        }
-        if (shorthand.contains("Premolar")) {
-            if (hasLocation || hasType) {
-                // Intersect with existing result
-                Set<Integer> intersection = new HashSet<>(result);
-                intersection.retainAll(PREMOLAR);
-                result = intersection;
-            } else {
-                result.addAll(PREMOLAR);
-            }
-            hasType = true;
-        }
-        if (shorthand.contains("Canine")) {
-            if (hasLocation || hasType) {
-                // Intersect with existing result
-                Set<Integer> intersection = new HashSet<>(result);
-                intersection.retainAll(CANINE);
-                result = intersection;
-            } else {
-                result.addAll(CANINE);
-            }
-            hasType = true;
-        }
-        if (shorthand.contains("Incisor")) {
-            if (hasLocation || hasType) {
-                // Intersect with existing result
-                Set<Integer> intersection = new HashSet<>(result);
-                intersection.retainAll(INCISOR);
-                result = intersection;
-            } else {
-                result.addAll(INCISOR);
-            }
-            hasType = true;
-        }
+        return matched ? setToString(result) : shorthand;
+    }
 
-        // If we have a result, return it, otherwise assume it's already a hyphen-separated list
-        return hasLocation || hasType ? setToString(result) : shorthand;
+    private static void update(Set<Integer> base, Set<Integer> addition) {
+        if (base.isEmpty()) {
+            base.addAll(addition);
+        } else {
+            base.retainAll(addition);
+        }
     }
 
     /**
