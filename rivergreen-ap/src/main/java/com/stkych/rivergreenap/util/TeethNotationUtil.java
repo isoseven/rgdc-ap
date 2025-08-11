@@ -281,21 +281,26 @@ public class TeethNotationUtil {
         }
 
 
-        // Check for combined location and type
+        // Check for combined location and type. Split the shorthand into
+        // distinct tokens to avoid matching substrings (e.g. matching
+        // "Molar" inside "Premolar").
+        Set<String> tokens = new HashSet<>(Arrays.asList(shorthand.split("\\s+|\\+")));
+        tokens.removeIf(String::isEmpty);
+
         Set<Integer> result = new HashSet<>();
         boolean hasLocation = false;
         boolean hasType = false;
 
         // Check for location
-        if (shorthand.contains("Upper")) {
+        if (tokens.contains("Upper")) {
             result.addAll(UPPER);
             hasLocation = true;
-        } else if (shorthand.contains("Lower")) {
+        } else if (tokens.contains("Lower")) {
             result.addAll(LOWER);
             hasLocation = true;
         }
 
-        if (shorthand.contains("Left")) {
+        if (tokens.contains("Left")) {
             if (hasLocation) {
                 // Intersect with existing result
                 result.retainAll(LEFT);
@@ -303,7 +308,7 @@ public class TeethNotationUtil {
                 result.addAll(LEFT);
                 hasLocation = true;
             }
-        } else if (shorthand.contains("Right")) {
+        } else if (tokens.contains("Right")) {
             if (hasLocation) {
                 // Intersect with existing result
                 result.retainAll(RIGHT);
@@ -314,7 +319,7 @@ public class TeethNotationUtil {
         }
 
         // Check for type
-        if (shorthand.contains("Wisdom")) {
+        if (tokens.contains("Wisdom")) {
             if (hasLocation) {
                 // Intersect with existing result
                 Set<Integer> intersection = new HashSet<>(result);
@@ -325,7 +330,7 @@ public class TeethNotationUtil {
             }
             hasType = true;
         }
-        if (shorthand.contains("Molar")) {
+        if (tokens.contains("Molar")) {
             if (hasLocation || hasType) {
                 // Intersect with existing result
                 Set<Integer> intersection = new HashSet<>(result);
@@ -336,7 +341,7 @@ public class TeethNotationUtil {
             }
             hasType = true;
         }
-        if (shorthand.contains("Premolar")) {
+        if (tokens.contains("Premolar")) {
             if (hasLocation || hasType) {
                 // Intersect with existing result
                 Set<Integer> intersection = new HashSet<>(result);
@@ -347,7 +352,7 @@ public class TeethNotationUtil {
             }
             hasType = true;
         }
-        if (shorthand.contains("Canine")) {
+        if (tokens.contains("Canine")) {
             if (hasLocation || hasType) {
                 // Intersect with existing result
                 Set<Integer> intersection = new HashSet<>(result);
@@ -358,7 +363,7 @@ public class TeethNotationUtil {
             }
             hasType = true;
         }
-        if (shorthand.contains("Incisor")) {
+        if (tokens.contains("Incisor")) {
             if (hasLocation || hasType) {
                 // Intersect with existing result
                 Set<Integer> intersection = new HashSet<>(result);
