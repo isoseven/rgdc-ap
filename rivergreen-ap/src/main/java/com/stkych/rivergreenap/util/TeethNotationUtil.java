@@ -82,9 +82,62 @@ public class TeethNotationUtil {
     }
 
     /**
-     * Converts a hyphen-separated list of teeth numbers to a shorthand notation if possible.
+     * Expands a teeth number string that may contain ranges to a list of integers.
+     * The string may use commas or semicolons as delimiters and hyphens to denote ranges.
+     * Example: {@code 1-3;5;6-8} becomes a list containing 1,2,3,5,6,7,8.
      *
-     * @param teethNumbers A hyphen-separated list of teeth numbers
+     * @param teethNumbers The teeth numbers string
+     * @return A list of individual tooth numbers, or an empty list if parsing fails
+     */
+    public static List<Integer> expandTeeth(String teethNumbers) {
+        List<Integer> result = new ArrayList<>();
+        if (teethNumbers == null || teethNumbers.isEmpty()) {
+            return result;
+        }
+
+        String[] parts = teethNumbers.split("[;,]");
+        for (String part : parts) {
+            part = part.trim();
+            if (part.isEmpty()) {
+                continue;
+            }
+            if (part.contains("-")) {
+                String[] range = part.split("-");
+                if (range.length == 2) {
+                    try {
+                        int start = Integer.parseInt(range[0].trim());
+                        int end = Integer.parseInt(range[1].trim());
+                        if (start <= end) {
+                            for (int i = start; i <= end; i++) {
+                                result.add(i);
+                            }
+                        } else {
+                            for (int i = start; i >= end; i--) {
+                                result.add(i);
+                            }
+                        }
+                    } catch (NumberFormatException e) {
+                        return new ArrayList<>();
+                    }
+                } else {
+                    return new ArrayList<>();
+                }
+            } else {
+                try {
+                    result.add(Integer.parseInt(part));
+                } catch (NumberFormatException e) {
+                    return new ArrayList<>();
+                }
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Converts a teeth numbers string using ranges (hyphen for ranges and semicolons or commas
+     * as delimiters) to a shorthand notation if possible.
+     *
+     * @param teethNumbers Teeth numbers string using ranges
      * @return The shorthand notation if available, otherwise the original list
      */
     public static String toShorthand(String teethNumbers) {
@@ -92,16 +145,11 @@ public class TeethNotationUtil {
             return "";
         }
 
-        // Parse the teeth numbers
-        Set<Integer> teeth = new HashSet<>();
-        for (String tooth : teethNumbers.split("-")) {
-            try {
-                teeth.add(Integer.parseInt(tooth.trim()));
-            } catch (NumberFormatException e) {
-                // If any part is not a number, return the original string
-                return teethNumbers;
-            }
+        List<Integer> numbers = expandTeeth(teethNumbers);
+        if (numbers.isEmpty()) {
+            return teethNumbers;
         }
+        Set<Integer> teeth = new HashSet<>(numbers);
 
         // Check for exact matches with combined sets from shorthand.txt
         String combined = COMBINED_SHORTHANDS.get(teeth);

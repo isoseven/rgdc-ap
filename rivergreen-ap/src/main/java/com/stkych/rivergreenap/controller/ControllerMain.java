@@ -7,6 +7,7 @@ import com.stkych.rivergreenap.model.RulesetItem;
 import com.stkych.rivergreenap.model.TreatmentPlanProcedure;
 import com.stkych.rivergreenap.util.FileUtils;
 import com.stkych.rivergreenap.util.ExecutionLogger;
+import com.stkych.rivergreenap.util.TeethNotationUtil;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -835,46 +836,13 @@ public class ControllerMain extends Controller {
      */
     private List<String> parseTeethNumbers(String teethNumbers) {
         List<String> result = new ArrayList<>();
-
         if (teethNumbers == null || teethNumbers.isEmpty()) {
             return result;
         }
-
-        // Split by semicolon to get individual teeth or ranges
-        String[] parts = teethNumbers.split(";");
-
-        for (String part : parts) {
-            part = part.trim();
-            if (part.isEmpty()) {
-                continue;
-            }
-
-            // Check if this part is a range (contains a hyphen)
-            if (part.contains("-")) {
-                String[] range = part.split("-");
-                if (range.length == 2) {
-                    try {
-                        int start = Integer.parseInt(range[0].trim());
-                        int end = Integer.parseInt(range[1].trim());
-
-                        // Add all teeth in the range
-                        for (int i = start; i <= end; i++) {
-                            result.add(String.valueOf(i));
-                        }
-                    } catch (NumberFormatException e) {
-                        // If parsing fails, just add the original part
-                        result.add(part);
-                    }
-                } else {
-                    // If the range format is invalid, just add the original part
-                    result.add(part);
-                }
-            } else {
-                // This is a single tooth number
-                result.add(part);
-            }
+        List<Integer> numbers = TeethNotationUtil.expandTeeth(teethNumbers);
+        for (Integer num : numbers) {
+            result.add(String.valueOf(num));
         }
-
         return result;
     }
 
