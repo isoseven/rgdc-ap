@@ -106,4 +106,9 @@ public class TeethNotationUtilTest {
         String lowerRight = "25-26-27-28-29-30-31-32";
         assertEquals("Lower Right", TeethNotationUtil.toShorthand(lowerRight));
     }
+
+    @Test
+    public void testFromShorthandUpperLeftPremolar() {
+        assertEquals("13-14", TeethNotationUtil.fromShorthand("Upper Left Premolar"));
+    }
 }
