@@ -160,19 +160,48 @@ public class RulesetDialogController implements Initializable {
     }
 
     /**
-     * Gets the procedure code as a string from the codes text field.
+     * Gets the procedure codes as a comma-separated string from the codes text field.
      *
-     * @return The procedure code as a string
+     * @return The procedure codes as a comma-separated string
+     */
+    public String getProcedureCodes() {
+        // Get the codes from the codes text field
+        if (codesTextField != null && !codesTextField.getText().isEmpty()) {
+            String codesText = codesTextField.getText();
+            // Process comma-separated procedure codes
+            String[] codes = codesText.split(",");
+            StringBuilder formattedCodes = new StringBuilder();
+            for (int i = 0; i < codes.length; i++) {
+                String code = codes[i].trim();
+                // Add 'D' prefix if not present
+                if (!code.startsWith("D")) {
+                    code = "D" + code;
+                }
+                formattedCodes.append(code);
+                if (i < codes.length - 1) {
+                    formattedCodes.append(",");
+                }
+            }
+            return formattedCodes.toString();
+        }
+        return "";
+    }
+
+    /**
+     * Gets the procedure code as a string from the codes text field.
+     * This method is provided for backward compatibility.
+     *
+     * @return The first procedure code as a string
      */
     public String getProcedureCode() {
-        // Get the code from the codes text field
-        if (codesTextField != null && !codesTextField.getText().isEmpty()) {
-            String code = codesTextField.getText();
-            // Add 'D' prefix if not present
-            if (!code.startsWith("D")) {
-                code = "D" + code;
+        String procedureCodes = getProcedureCodes();
+        if (!procedureCodes.isEmpty()) {
+            // Return the first code if there are multiple
+            int commaIndex = procedureCodes.indexOf(',');
+            if (commaIndex > 0) {
+                return procedureCodes.substring(0, commaIndex);
             }
-            return code;
+            return procedureCodes;
         }
         return "";
     }
@@ -271,25 +300,45 @@ public class RulesetDialogController implements Initializable {
     }
 
     /**
-     * Sets the procedure code in the codes text field.
-     * If the code starts with 'D', it will be removed before setting the text.
+     * Sets the procedure codes in the codes text field.
+     * If the codes start with 'D', they will be removed before setting the text.
      *
-     * @param procedureCode The procedure code to set
+     * @param procedureCodes The procedure codes to set as a comma-separated list
      */
-    public void setProcedureCode(String procedureCode) {
-        if (procedureCode == null || procedureCode.isEmpty()) {
+    public void setProcedureCodes(String procedureCodes) {
+        if (procedureCodes == null || procedureCodes.isEmpty()) {
             return;
         }
 
-        // Remove 'D' prefix if present
-        if (procedureCode.startsWith("D")) {
-            procedureCode = procedureCode.substring(1);
+        // Process comma-separated procedure codes
+        String[] codes = procedureCodes.split(",");
+        StringBuilder formattedCodes = new StringBuilder();
+        for (int i = 0; i < codes.length; i++) {
+            String code = codes[i].trim();
+            // Remove 'D' prefix if present
+            if (code.startsWith("D")) {
+                code = code.substring(1);
+            }
+            formattedCodes.append(code);
+            if (i < codes.length - 1) {
+                formattedCodes.append(",");
+            }
         }
 
         // Update the codes text field
         if (codesTextField != null) {
-            codesTextField.setText(procedureCode);
+            codesTextField.setText(formattedCodes.toString());
         }
+    }
+
+    /**
+     * Sets the procedure code in the codes text field.
+     * This method is provided for backward compatibility.
+     *
+     * @param procedureCode The procedure code to set
+     */
+    public void setProcedureCode(String procedureCode) {
+        setProcedureCodes(procedureCode);
     }
 
     /**

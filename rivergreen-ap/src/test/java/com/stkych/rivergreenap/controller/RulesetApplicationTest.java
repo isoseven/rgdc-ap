@@ -57,7 +57,8 @@ public class RulesetApplicationTest {
         // Add test procedures
         TreatmentPlanProcedure proc1 = new TreatmentPlanProcedure("", "1", "B", "D1110", "", "Prophylaxis", 100.00, 1);
         TreatmentPlanProcedure proc2 = new TreatmentPlanProcedure("", "2", "MOD", "D2393", "", "Composite Restoration", 200.00, 2);
-        TreatmentPlanProcedure proc3 = new TreatmentPlanProcedure("", "20", "B", "D1110", "", "Prophylaxis", 100.00, 3);
+        // Use a different procedure code for proc3 to ensure it doesn't match any ruleset item
+        TreatmentPlanProcedure proc3 = new TreatmentPlanProcedure("", "20", "B", "D9999", "", "Prophylaxis", 100.00, 3);
 
         procedures.add(proc1);
         procedures.add(proc2);
@@ -101,7 +102,7 @@ public class RulesetApplicationTest {
         // Skip the header item (index 0)
         for (int i = 1; i < ruleset.size(); i++) {
             RulesetItem item = ruleset.get(i);
-            String procedureCode = item.getProcedureCode();
+            String procedureCodes = item.getProcedureCodes();
             String priority = item.getPriority();
             String diagnosis = item.getDiagnosis();
 
@@ -120,12 +121,22 @@ public class RulesetApplicationTest {
                 }
             }
 
+            // Parse procedure codes into a list
+            List<String> ruleProcedureCodes = new ArrayList<>();
+            if (procedureCodes != null && !procedureCodes.isEmpty()) {
+                // Split by comma and add each code to the list
+                String[] codes = procedureCodes.split(",");
+                for (String code : codes) {
+                    ruleProcedureCodes.add(code.trim());
+                }
+            }
+
             // Update the priority and diagnosis of procedures with matching procedure code and teeth
             for (int j = 1; j < procedures.size(); j++) { // Skip the header item (index 0)
                 TreatmentPlanProcedure procedure = procedures.get(j);
 
-                // Check if procedure code matches
-                if (procedure.getProcedureCode().equals(procedureCode)) {
+                // Check if procedure code matches any of the codes in the rule
+                if (ruleProcedureCodes.contains(procedure.getProcedureCode())) {
                     // If the rule has teeth specified, check if the procedure's tooth matches any of them
                     if (!ruleTeeth.isEmpty()) {
                         String procedureTooth = procedure.getToothNumber();

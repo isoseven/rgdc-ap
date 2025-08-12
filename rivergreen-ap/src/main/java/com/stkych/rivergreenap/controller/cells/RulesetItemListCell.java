@@ -64,7 +64,10 @@ public class RulesetItemListCell extends ListCell<RulesetItem> {
         } else {
             // Set the text of each label to the corresponding property of the item
             priorityLabel.setText(item.getPriority());
-            procedureCodeLabel.setText(item.getProcedureCode());
+
+            // Use the procedure codes property and display as comma-separated list
+            String procedureCodes = item.getProcedureCodes();
+            procedureCodeLabel.setText(procedureCodes);
 
             // Use the teeth numbers property and convert to shorthand if possible
             String teethNumbers = item.getTeethNumbers();

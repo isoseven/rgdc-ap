@@ -302,7 +302,7 @@ public class ControllerRuleset implements Initializable {
 
             // Pre-populate the fields with the selected item's data
             controller.getPriorityComboBox().setValue(selectedItem.getPriority());
-            controller.getProcedureCodeComboBox().setValue(selectedItem.getProcedureCode());
+            controller.getProcedureCodeComboBox().setValue(selectedItem.getProcedureCodes());
             controller.setDescription(selectedItem.getDescription());
             controller.setSelectedTeethFromString(selectedItem.getTeethNumbers());
 
@@ -702,13 +702,23 @@ public class ControllerRuleset implements Initializable {
                         teethNumbers = parts[2].trim();
                     }
 
-                    // Get procedure code if present
+                    // Get procedure codes if present
                     if (parts.length > 3 && !parts[3].trim().isEmpty()) {
-                        // Add 'D' prefix if not present
-                        procedureCode = parts[3].trim();
-                        if (!procedureCode.startsWith("D")) {
-                            procedureCode = "D" + procedureCode;
+                        // Process comma-separated procedure codes
+                        String[] codes = parts[3].trim().split(",");
+                        StringBuilder formattedCodes = new StringBuilder();
+                        for (int i = 0; i < codes.length; i++) {
+                            String code = codes[i].trim();
+                            // Add 'D' prefix if not present
+                            if (!code.startsWith("D")) {
+                                code = "D" + code;
+                            }
+                            formattedCodes.append(code);
+                            if (i < codes.length - 1) {
+                                formattedCodes.append(",");
+                            }
                         }
+                        procedureCode = formattedCodes.toString();
                     }
 
                     // Handle old format files (priority,procedureCode,teethNumbers,diagnosis)
@@ -790,14 +800,24 @@ public class ControllerRuleset implements Initializable {
                 }
                 line.append(",");
 
-                // Add procedure code (without 'D' prefix)
-                String procedureCode = item.getProcedureCode();
-                if (procedureCode != null && !procedureCode.isEmpty()) {
-                    // Remove 'D' prefix if present
-                    if (procedureCode.startsWith("D")) {
-                        procedureCode = procedureCode.substring(1);
+                // Add procedure codes (without 'D' prefix)
+                String procedureCodes = item.getProcedureCodes();
+                if (procedureCodes != null && !procedureCodes.isEmpty()) {
+                    // Process comma-separated procedure codes
+                    String[] codes = procedureCodes.split(",");
+                    StringBuilder formattedCodes = new StringBuilder();
+                    for (int j = 0; j < codes.length; j++) {
+                        String code = codes[j].trim();
+                        // Remove 'D' prefix if present
+                        if (code.startsWith("D")) {
+                            code = code.substring(1);
+                        }
+                        formattedCodes.append(code);
+                        if (j < codes.length - 1) {
+                            formattedCodes.append(",");
+                        }
                     }
-                    line.append(procedureCode);
+                    line.append(formattedCodes);
                 }
 
                 writer.write(line.toString());

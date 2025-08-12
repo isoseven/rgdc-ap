@@ -6,12 +6,13 @@ import java.util.Objects;
 
 /**
  * Model class representing an item in a ruleset.
- * A ruleset item consists of a procedure code, a priority, a description, teeth numbers, and a diagnosis.
+ * A ruleset item consists of procedure codes, a priority, a description, teeth numbers, and a diagnosis.
  * This class is designed to work with JavaFX ListView.
+ * Procedure codes and teeth numbers can be multiple values stored as comma-separated lists.
  */
 public class RulesetItem {
     private final StringProperty priority;
-    private final StringProperty procedureCode;
+    private final StringProperty procedureCodes;
     private final StringProperty description;
     private final StringProperty teethNumbers;
     private final StringProperty diagnosis;
@@ -20,13 +21,13 @@ public class RulesetItem {
      * Constructs a new RulesetItem with the specified values.
      *
      * @param priority The priority of the item
-     * @param procedureCode The procedure code
-     * @param description The description of the procedure code
+     * @param procedureCodes The procedure codes as a comma-separated list
+     * @param description The description of the procedure codes
      * @param teethNumbers The teeth numbers as a comma-separated list
      */
-    public RulesetItem(String priority, String procedureCode, String description, String teethNumbers) {
+    public RulesetItem(String priority, String procedureCodes, String description, String teethNumbers) {
         this.priority = new SimpleStringProperty(priority);
-        this.procedureCode = new SimpleStringProperty(procedureCode);
+        this.procedureCodes = new SimpleStringProperty(procedureCodes);
         this.description = new SimpleStringProperty(description);
         this.teethNumbers = new SimpleStringProperty(teethNumbers);
         this.diagnosis = new SimpleStringProperty("");
@@ -36,35 +37,35 @@ public class RulesetItem {
      * Constructs a new RulesetItem with the specified values and empty teeth numbers.
      *
      * @param priority The priority of the item
-     * @param procedureCode The procedure code
-     * @param description The description of the procedure code
+     * @param procedureCodes The procedure codes as a comma-separated list
+     * @param description The description of the procedure codes
      */
-    public RulesetItem(String priority, String procedureCode, String description) {
-        this(priority, procedureCode, description, "");
+    public RulesetItem(String priority, String procedureCodes, String description) {
+        this(priority, procedureCodes, description, "");
     }
 
     /**
      * Constructs a new RulesetItem with the specified values and empty description and teeth numbers.
      *
      * @param priority The priority of the item
-     * @param procedureCode The procedure code
+     * @param procedureCodes The procedure codes as a comma-separated list
      */
-    public RulesetItem(String priority, String procedureCode) {
-        this(priority, procedureCode, "", "");
+    public RulesetItem(String priority, String procedureCodes) {
+        this(priority, procedureCodes, "", "");
     }
 
     /**
      * Constructs a new RulesetItem with the specified values.
      *
      * @param priority The priority of the item
-     * @param procedureCode The procedure code
-     * @param description The description of the procedure code
+     * @param procedureCodes The procedure codes as a comma-separated list
+     * @param description The description of the procedure codes
      * @param teethNumbers The teeth numbers as a comma-separated list
      * @param diagnosis The diagnosis for the item
      */
-    public RulesetItem(String priority, String procedureCode, String description, String teethNumbers, String diagnosis) {
+    public RulesetItem(String priority, String procedureCodes, String description, String teethNumbers, String diagnosis) {
         this.priority = new SimpleStringProperty(priority);
-        this.procedureCode = new SimpleStringProperty(procedureCode);
+        this.procedureCodes = new SimpleStringProperty(procedureCodes);
         this.description = new SimpleStringProperty(description);
         this.teethNumbers = new SimpleStringProperty(teethNumbers);
         this.diagnosis = new SimpleStringProperty(diagnosis);
@@ -83,17 +84,30 @@ public class RulesetItem {
         this.priority.set(priority);
     }
 
-    // Procedure code property
+    // Procedure codes property
+    public StringProperty procedureCodesProperty() {
+        return procedureCodes;
+    }
+
+    public String getProcedureCodes() {
+        return procedureCodes.get();
+    }
+
+    public void setProcedureCodes(String procedureCodes) {
+        this.procedureCodes.set(procedureCodes);
+    }
+
+    // For backward compatibility
     public StringProperty procedureCodeProperty() {
-        return procedureCode;
+        return procedureCodes;
     }
 
     public String getProcedureCode() {
-        return procedureCode.get();
+        return procedureCodes.get();
     }
 
     public void setProcedureCode(String procedureCode) {
-        this.procedureCode.set(procedureCode);
+        this.procedureCodes.set(procedureCode);
     }
 
     // Description property
@@ -144,7 +158,7 @@ public class RulesetItem {
     public String toString() {
         return "RulesetItem{" +
                 "priority='" + getPriority() + '\'' +
-                ", procedureCode='" + getProcedureCode() + '\'' +
+                ", procedureCodes='" + getProcedureCodes() + '\'' +
                 ", description='" + getDescription() + '\'' +
                 ", teethNumbers='" + getTeethNumbers() + '\'' +
                 ", diagnosis='" + getDiagnosis() + '\'' +
@@ -157,7 +171,7 @@ public class RulesetItem {
         if (!(o instanceof RulesetItem)) return false;
         RulesetItem that = (RulesetItem) o;
         return Objects.equals(getPriority(), that.getPriority()) &&
-                Objects.equals(getProcedureCode(), that.getProcedureCode()) &&
+                Objects.equals(getProcedureCodes(), that.getProcedureCodes()) &&
                 Objects.equals(getDescription(), that.getDescription()) &&
                 Objects.equals(getTeethNumbers(), that.getTeethNumbers()) &&
                 Objects.equals(getDiagnosis(), that.getDiagnosis());
@@ -165,6 +179,6 @@ public class RulesetItem {
 
     @Override
     public int hashCode() {
-        return Objects.hash(getPriority(), getProcedureCode(), getDescription(), getTeethNumbers(), getDiagnosis());
+        return Objects.hash(getPriority(), getProcedureCodes(), getDescription(), getTeethNumbers(), getDiagnosis());
     }
 }
