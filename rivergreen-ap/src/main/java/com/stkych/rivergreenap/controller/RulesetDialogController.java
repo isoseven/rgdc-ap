@@ -257,7 +257,7 @@ public class RulesetDialogController implements Initializable {
 
         // Update the teeth text field
         if (teethTextField != null) {
-            teethTextField.setText(teethString);
+            teethTextField.setText(teethString.replace(";", ","));
         }
     }
 
