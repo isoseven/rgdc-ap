@@ -15,12 +15,15 @@ import com.stkych.rivergreenap.util.FileUtils;
 import java.io.*;
 import java.net.URL;
 import java.util.*;
+import java.util.logging.Logger;
+import java.util.logging.Level;
 
 /**
  * Controller for the ruleset configuration window.
  * Handles the UI interactions and implements the business logic for managing rulesets.
  */
 public class RulesetConfigController implements Initializable {
+    private static final Logger LOGGER = Logger.getLogger(RulesetConfigController.class.getName());
 
     @FXML
     private ListView<String> rulesetListView;
@@ -95,7 +98,7 @@ public class RulesetConfigController implements Initializable {
     private void handleAddButtonAction() {
         try {
             // Show the ruleset name dialog
-            RulesetNameDialogController controller = (RulesetNameDialogController) SceneSwitcher.showPopup("ruleset_name_dialog", "Add Ruleset");
+            RulesetNameDialogController controller = (RulesetNameDialogController) SceneSwitcher.getInstance().showPopup("ruleset_name_dialog", "Add Ruleset");
             controller.setTitle("Add New Ruleset");
 
             // Wait for the dialog to close
@@ -122,7 +125,7 @@ public class RulesetConfigController implements Initializable {
                 }
             });
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Unexpected error", e);
             showAlert("Error", "Failed to open ruleset name dialog: " + e.getMessage());
         }
     }
@@ -138,7 +141,7 @@ public class RulesetConfigController implements Initializable {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
             // The file is created empty
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Unexpected error", e);
             showAlert("Error", "Failed to create ruleset file: " + e.getMessage());
         }
     }
@@ -158,7 +161,7 @@ public class RulesetConfigController implements Initializable {
 
         try {
             // Show the ruleset name dialog
-            RulesetNameDialogController controller = (RulesetNameDialogController) SceneSwitcher.showPopup("ruleset_name_dialog", "Rename Ruleset");
+            RulesetNameDialogController controller = (RulesetNameDialogController) SceneSwitcher.getInstance().showPopup("ruleset_name_dialog", "Rename Ruleset");
             controller.setTitle("Rename Ruleset");
             controller.setName(selectedRuleset);
 
@@ -187,7 +190,7 @@ public class RulesetConfigController implements Initializable {
                 }
             });
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Unexpected error", e);
             showAlert("Error", "Failed to open ruleset name dialog: " + e.getMessage());
         }
     }
@@ -204,7 +207,7 @@ public class RulesetConfigController implements Initializable {
 
         if (oldFile.exists()) {
             if (oldFile.renameTo(newFile)) {
-                System.out.println("Ruleset file renamed successfully.");
+                LOGGER.info("Ruleset file renamed successfully.");
             } else {
                 showAlert("Error", "Failed to rename ruleset file.");
             }
@@ -252,7 +255,7 @@ public class RulesetConfigController implements Initializable {
 
         if (file.exists()) {
             if (file.delete()) {
-                System.out.println("Ruleset file deleted successfully.");
+                LOGGER.info("Ruleset file deleted successfully.");
             } else {
                 showAlert("Error", "Failed to delete ruleset file.");
             }
@@ -268,7 +271,7 @@ public class RulesetConfigController implements Initializable {
     @FXML
     private void handleCloseButtonAction() {
         // Set a flag in the data cache to indicate that the ruleset window should be refreshed
-        SceneSwitcher.putData("refreshRulesetWindow", true);
+        SceneSwitcher.getInstance().putData("refreshRulesetWindow", true);
 
         // Close the window
         Stage stage = (Stage) closeButton.getScene().getWindow();

@@ -6,6 +6,8 @@ import javafx.scene.control.ListCell;
 import javafx.scene.layout.GridPane;
 
 import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Custom ListCell implementation for displaying a header row in the RulesetItem ListView.
@@ -14,6 +16,7 @@ import java.io.IOException;
 public class RulesetItemHeaderCell extends ListCell<RulesetItem> {
 
     private GridPane gridPane;
+    private static final Logger LOGGER = Logger.getLogger(RulesetItemHeaderCell.class.getName());
 
     /**
      * Constructs a new RulesetItemHeaderCell.
@@ -30,7 +33,7 @@ public class RulesetItemHeaderCell extends ListCell<RulesetItem> {
             setStyle("-fx-opacity: 1.0; -fx-background-color: #e0e0e0; -fx-font-weight: bold; -fx-border-color: #c0c0c0; -fx-border-width: 0 0 1 0;");
 
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Failed to load ruleset column FXML", e);
         }
     }
 

@@ -10,12 +10,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Database utility class for the RiverGreen Dental Application.
  * Provides methods to connect to the MySQL database and manipulate treatment plan procedures.
  */
 public class RiverGreenDB {
+    private static final Logger LOGGER = Logger.getLogger(RiverGreenDB.class.getName());
     private static final String DB_URL = "jdbc:mysql://localhost:3306/opendental?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
     private static final String DB_USER = "root";
     private static final String DB_PASSWORD = "test";
@@ -34,10 +37,10 @@ public class RiverGreenDB {
             // Attempt to establish connection
             return DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
         } catch (ClassNotFoundException e) {
-            System.err.println("MySQL JDBC Driver not found: " + e.getMessage());
+            LOGGER.log(Level.SEVERE, "MySQL JDBC Driver not found", e);
             throw new SQLException("MySQL JDBC Driver not found", e);
         } catch (SQLException e) {
-            System.err.println("Database connection error: " + e.getMessage());
+            LOGGER.log(Level.SEVERE, "Database connection error", e);
             throw e;
         }
     }
@@ -327,7 +330,7 @@ public class RiverGreenDB {
             return results;
         }
 
-        System.out.println("Generating SQL queries for Patient #" + patientNumber);
+        LOGGER.info("Generating SQL queries for Patient #" + patientNumber);
 
         // Create a list to hold the SQL queries
         List<String> sqlQueries = new ArrayList<>();
@@ -423,14 +426,14 @@ public class RiverGreenDB {
                 sqlQueries.add(tpaFinalQuery);
 
             } catch (Exception e) {
-                System.err.println("Error generating SQL for procedure: " + e.getMessage());
+                LOGGER.log(Level.WARNING, "Error generating SQL for procedure", e);
             }
         }
 
         // Print all SQL queries with patient information
-        System.out.println("Generated " + sqlQueries.size() + " SQL queries for Patient #" + patientNumber + ":");
+        LOGGER.info("Generated " + sqlQueries.size() + " SQL queries for Patient #" + patientNumber + ":");
         for (int i = 0; i < sqlQueries.size(); i++) {
-            System.out.println((i + 1) + ": " + sqlQueries.get(i));
+            LOGGER.info((i + 1) + ": " + sqlQueries.get(i));
         }
 
         // Execute the queries and get the results

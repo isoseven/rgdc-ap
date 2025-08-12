@@ -5,6 +5,8 @@ import javafx.application.Application;
 import javafx.stage.Stage;
 
 import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Main application class for the application.
@@ -13,6 +15,7 @@ import java.io.IOException;
 public class RiverGreenApplication extends Application {
     // FALLBACK patient number if none is provided
     private static int patientNumber = -1; // Default value
+    private static final Logger LOGGER = Logger.getLogger(RiverGreenApplication.class.getName());
 
     /**
      * Starts the application.
@@ -28,11 +31,11 @@ public class RiverGreenApplication extends Application {
 
         if (patientNumber != -1) {
             // Initialize the SceneSwitcher with the primary stage
-            SceneSwitcher.initialize(stage);
+            SceneSwitcher.getInstance().initialize(stage);
             // Store the patient number in the data cache for the controller to use
-            SceneSwitcher.putData("patientNumber", patientNumber);
+            SceneSwitcher.getInstance().putData("patientNumber", patientNumber);
             // Switch to the main scene (using the new GUI)
-            SceneSwitcher.switchScene("main", "RiverGreen Dental Application");
+            SceneSwitcher.getInstance().switchScene("main", "RiverGreen Dental Application");
         } else {
             // Display a simple error alert instead of loading an error scene
             javafx.scene.control.Alert alert = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR);
@@ -57,7 +60,7 @@ public class RiverGreenApplication extends Application {
             try {
                 patientNumber = Integer.parseInt(args[0]);
             } catch (NumberFormatException e) {
-                System.err.println("Invalid patient number format. Using default: " + patientNumber);
+                LOGGER.log(Level.WARNING, "Invalid patient number format. Using default: " + patientNumber);
             }
         }
         launch(args);

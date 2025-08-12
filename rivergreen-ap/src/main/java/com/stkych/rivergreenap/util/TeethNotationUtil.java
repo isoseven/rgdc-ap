@@ -29,6 +29,27 @@ public class TeethNotationUtil {
     private static final Set<Integer> UPPER_INCISOR = new HashSet<>(Arrays.asList(7, 8, 9, 10));
     private static final Set<Integer> LOWER_INCISOR = new HashSet<>(Arrays.asList(23, 24, 25, 26));
 
+    private static final Map<Set<Integer>, String> COMBINED_SHORTHANDS = Map.of(
+            UPPER_WISDOM, "Upper Wisdom",
+            LOWER_WISDOM, "Lower Wisdom",
+            UPPER_MOLAR, "Upper Molar",
+            LOWER_MOLAR, "Lower Molar",
+            UPPER_PREMOLAR, "Upper Premolar",
+            LOWER_PREMOLAR, "Lower Premolar",
+            UPPER_CANINE, "Upper Canine",
+            LOWER_CANINE, "Lower Canine",
+            UPPER_INCISOR, "Upper Incisor",
+            LOWER_INCISOR, "Lower Incisor"
+    );
+
+    private static final Map<Set<Integer>, String> TYPE_SHORTHANDS = Map.of(
+            WISDOM, "Wisdom",
+            MOLAR, "Molar",
+            PREMOLAR, "Premolar",
+            CANINE, "Canine",
+            INCISOR, "Incisor"
+    );
+
     // Location sets
     private static final Set<Integer> UPPER = new HashSet<>();
     private static final Set<Integer> LOWER = new HashSet<>();
@@ -83,56 +104,19 @@ public class TeethNotationUtil {
         }
 
         // Check for exact matches with combined sets from shorthand.txt
-        if (teeth.equals(UPPER_WISDOM)) {
-            return "Upper Wisdom";
-        }
-        if (teeth.equals(LOWER_WISDOM)) {
-            return "Lower Wisdom";
-        }
-        if (teeth.equals(UPPER_MOLAR)) {
-            return "Upper Molar";
-        }
-        if (teeth.equals(LOWER_MOLAR)) {
-            return "Lower Molar";
-        }
-        if (teeth.equals(UPPER_PREMOLAR)) {
-            return "Upper Premolar";
-        }
-        if (teeth.equals(LOWER_PREMOLAR)) {
-            return "Lower Premolar";
-        }
-        if (teeth.equals(UPPER_CANINE)) {
-            return "Upper Canine";
-        }
-        if (teeth.equals(LOWER_CANINE)) {
-            return "Lower Canine";
-        }
-        if (teeth.equals(UPPER_INCISOR)) {
-            return "Upper Incisor";
-        }
-        if (teeth.equals(LOWER_INCISOR)) {
-            return "Lower Incisor";
+        String combined = COMBINED_SHORTHANDS.get(teeth);
+        if (combined != null) {
+            return combined;
         }
 
         // Check for type sets
-        List<String> typeMatches = new ArrayList<>();
-        if (teeth.equals(WISDOM)) {
-            return "Wisdom";
-        }
-        if (teeth.equals(MOLAR)) {
-            return "Molar";
-        }
-        if (teeth.equals(PREMOLAR)) {
-            return "Premolar";
-        }
-        if (teeth.equals(CANINE)) {
-            return "Canine";
-        }
-        if (teeth.equals(INCISOR)) {
-            return "Incisor";
+        String type = TYPE_SHORTHANDS.get(teeth);
+        if (type != null) {
+            return type;
         }
 
         // Check for partial type matches
+        List<String> typeMatches = new ArrayList<>();
         if (WISDOM.containsAll(teeth)) {
             typeMatches.add("Wisdom");
         }

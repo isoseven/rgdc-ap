@@ -2,6 +2,7 @@ package com.stkych.rivergreenap.model;
 
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
+import java.util.Objects;
 
 /**
  * Model class representing an item in a ruleset.
@@ -148,5 +149,22 @@ public class RulesetItem {
                 ", teethNumbers='" + getTeethNumbers() + '\'' +
                 ", diagnosis='" + getDiagnosis() + '\'' +
                 '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof RulesetItem)) return false;
+        RulesetItem that = (RulesetItem) o;
+        return Objects.equals(getPriority(), that.getPriority()) &&
+                Objects.equals(getProcedureCode(), that.getProcedureCode()) &&
+                Objects.equals(getDescription(), that.getDescription()) &&
+                Objects.equals(getTeethNumbers(), that.getTeethNumbers()) &&
+                Objects.equals(getDiagnosis(), that.getDiagnosis());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(getPriority(), getProcedureCode(), getDescription(), getTeethNumbers(), getDiagnosis());
     }
 }

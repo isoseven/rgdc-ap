@@ -8,12 +8,16 @@ import javafx.scene.control.ListCell;
 import javafx.scene.layout.GridPane;
 
 import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Custom ListCell implementation for displaying RulesetItem objects
  * using the ruleset_column.fxml layout.
  */
 public class RulesetItemListCell extends ListCell<RulesetItem> {
+
+    private static final Logger LOGGER = Logger.getLogger(RulesetItemListCell.class.getName());
 
     private GridPane gridPane;
     private Label priorityLabel;
@@ -40,7 +44,7 @@ public class RulesetItemListCell extends ListCell<RulesetItem> {
             descriptionLabel = (Label) gridPane.lookup("#descriptionLabel");
 
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Failed to load ruleset column FXML", e);
         }
     }
 
