@@ -68,7 +68,7 @@ public class RulesetItemListCell extends ListCell<RulesetItem> {
 
             // Use the teeth numbers property and convert to shorthand if possible
             String teethNumbers = item.getTeethNumbers();
-            String teethDisplay = TeethNotationUtil.toShorthand(teethNumbers);
+            String teethDisplay = TeethNotationUtil.toShorthand(teethNumbers).replace(";", ",");
             teethLabel.setText(teethDisplay);
 
             // Set the diagnosis and description

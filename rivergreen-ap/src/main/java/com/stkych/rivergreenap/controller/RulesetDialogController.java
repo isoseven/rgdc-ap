@@ -1,6 +1,7 @@
 package com.stkych.rivergreenap.controller;
 
 import com.stkych.rivergreenap.RiverGreenDB;
+import com.stkych.rivergreenap.util.TeethNotationUtil;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -10,7 +11,9 @@ import javafx.stage.Stage;
 
 import java.net.URL;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.ResourceBundle;
+import java.util.stream.Collectors;
 
 /**
  * Controller for the ruleset dialog.
@@ -244,20 +247,26 @@ public class RulesetDialogController implements Initializable {
 
     /**
      * Sets the selected teeth from a string representation.
-     * The string format can be tooth numbers separated by hyphens, commas, or semicolons,
-     * e.g., "1-2-3-4" or "1, 2, 3, 4" or "1-3;4;5;6-10".
+     * The string may contain ranges using hyphens and semicolons as delimiters, e.g.,
+     * {@code "1-3;5;6-8"}. Ranges are expanded and displayed as a comma-separated list.
      *
      * @param teethString The string representation of selected teeth
      */
     public void setSelectedTeethFromString(String teethString) {
-        // If the string is empty or null, return
         if (teethString == null || teethString.isEmpty()) {
             return;
         }
 
-        // Update the teeth text field
         if (teethTextField != null) {
-            teethTextField.setText(teethString);
+            List<Integer> teeth = TeethNotationUtil.expandTeeth(teethString);
+            if (!teeth.isEmpty()) {
+                String display = teeth.stream()
+                        .map(String::valueOf)
+                        .collect(Collectors.joining(","));
+                teethTextField.setText(display);
+            } else {
+                teethTextField.setText(teethString.replace(";", ","));
+            }
         }
     }
 

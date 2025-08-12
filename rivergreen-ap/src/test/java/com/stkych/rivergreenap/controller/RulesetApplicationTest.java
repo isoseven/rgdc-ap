@@ -2,6 +2,7 @@ package com.stkych.rivergreenap.controller;
 
 import com.stkych.rivergreenap.model.RulesetItem;
 import com.stkych.rivergreenap.model.TreatmentPlanProcedure;
+import com.stkych.rivergreenap.util.TeethNotationUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -113,10 +114,9 @@ public class RulesetApplicationTest {
             List<String> ruleTeeth = new ArrayList<>();
             String teethNumbers = item.getTeethNumbers();
             if (teethNumbers != null && !teethNumbers.isEmpty()) {
-                // Use hyphens as the delimiter, not commas
-                String[] teeth = teethNumbers.split("-");
-                for (String tooth : teeth) {
-                    ruleTeeth.add(tooth.trim());
+                List<Integer> expanded = TeethNotationUtil.expandTeeth(teethNumbers);
+                for (Integer tooth : expanded) {
+                    ruleTeeth.add(String.valueOf(tooth));
                 }
             }
 

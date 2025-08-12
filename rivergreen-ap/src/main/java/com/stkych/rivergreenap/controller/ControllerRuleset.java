@@ -5,6 +5,7 @@ import com.stkych.rivergreenap.SceneSwitcher;
 import com.stkych.rivergreenap.controller.cells.RulesetItemCellFactory;
 import com.stkych.rivergreenap.model.RulesetItem;
 import com.stkych.rivergreenap.util.FileUtils;
+import com.stkych.rivergreenap.util.TeethNotationUtil;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -828,31 +829,20 @@ public class ControllerRuleset implements Initializable {
     }
 
     /**
-     * Formats teeth numbers to use ranges with - and ; as delimiters.
-     * Example: "1,2,3,4,6,7,8" becomes "1-4;6-8"
+     * Formats teeth numbers to use ranges with '-' and ';' as delimiters.
+     * Example: {@code "1,2,3,4,6,7,8"} becomes {@code "1-4;6-8"}.
      *
-     * @param teethNumbers The teeth numbers as a comma-separated or hyphen-separated list
-     * @return The formatted teeth numbers using ranges with - and ; as delimiters
+     * @param teethNumbers The teeth numbers entered by the user (may contain commas or ranges)
+     * @return The formatted teeth numbers using ranges with '-' and ';' as delimiters
      */
     private String formatTeethNumbers(String teethNumbers) {
         if (teethNumbers == null || teethNumbers.isEmpty()) {
             return "";
         }
 
-        // Replace hyphens with commas to normalize the input
-        String normalizedInput = teethNumbers.replace("-", ",");
-
-        // Split by comma
-        String[] parts = normalizedInput.split(",");
-
-        // Convert to integers for easier processing
-        List<Integer> numbers = new ArrayList<>();
-        for (String part : parts) {
-            try {
-                numbers.add(Integer.parseInt(part.trim()));
-            } catch (NumberFormatException e) {
-                // Skip non-numeric values
-            }
+        List<Integer> numbers = TeethNotationUtil.expandTeeth(teethNumbers);
+        if (numbers.isEmpty()) {
+            return teethNumbers.replace(",", ";");
         }
 
         // Sort the numbers
