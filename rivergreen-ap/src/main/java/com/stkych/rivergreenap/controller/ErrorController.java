@@ -4,12 +4,15 @@ import javafx.fxml.FXML;
 import java.awt.Desktop;
 import java.net.URI;
 import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Controller for the error scene of the application.
  * Shows up whenever a patient number isn't provided as a command line argument.
  */
 public class ErrorController {
+    private static final Logger LOGGER = Logger.getLogger(ErrorController.class.getName());
     /**
      * Handles the close button click event.
      * Exits the application.
@@ -32,7 +35,7 @@ public class ErrorController {
         try {
             Desktop.getDesktop().browse(new URI("https://github.com/isoseven/rgdc-ap"));
         } catch (Exception e) {
-            System.err.println("Error opening URL: " + e.getMessage());
+            LOGGER.log(Level.WARNING, "Error opening URL", e);
         }
     }
 }

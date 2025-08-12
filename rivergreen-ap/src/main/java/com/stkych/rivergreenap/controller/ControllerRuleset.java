@@ -20,12 +20,15 @@ import java.io.*;
 import java.net.URL;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Controller for the ruleset window.
  * Handles the UI interactions and implements the business logic for the ruleset window.
  */
 public class ControllerRuleset implements Initializable {
+    private static final Logger LOGGER = Logger.getLogger(ControllerRuleset.class.getName());
 
     @FXML
     private ListView<RulesetItem> listView;
@@ -87,7 +90,7 @@ public class ControllerRuleset implements Initializable {
                 Stage stage = (Stage) newScene.getWindow();
                 stage.focusedProperty().addListener((obs, oldValue, newValue) -> {
                     if (newValue) { // When the window regains focus
-                        Boolean refreshFlag = (Boolean) SceneSwitcher.getData("refreshRulesetWindow");
+                        Boolean refreshFlag = (Boolean) SceneSwitcher.getInstance().getData("refreshRulesetWindow");
                         if (refreshFlag != null && refreshFlag) {
                             // Refresh the ruleset window
                             loadRulesets();
@@ -95,7 +98,7 @@ public class ControllerRuleset implements Initializable {
                             loadRuleset(currentRuleset);
 
                             // Clear the flag
-                            SceneSwitcher.removeData("refreshRulesetWindow");
+                            SceneSwitcher.getInstance().removeData("refreshRulesetWindow");
                         }
                     }
                 });
@@ -193,7 +196,7 @@ public class ControllerRuleset implements Initializable {
                         controller.setDescription(description);
                     } catch (SQLException e) {
                         controller.setDescription("Description not available");
-                        e.printStackTrace();
+                        LOGGER.log(Level.SEVERE, "Unexpected error", e);
                     }
                 } else {
                     controller.setDescription("");
@@ -232,7 +235,7 @@ public class ControllerRuleset implements Initializable {
                 return null;
             });
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Unexpected error", e);
         }
 
         // Show the dialog and process the result
@@ -252,12 +255,12 @@ public class ControllerRuleset implements Initializable {
     private void handleEditRulesetButtonAction() {
         try {
             // Clear any existing refresh flag
-            SceneSwitcher.removeData("refreshRulesetWindow");
+            SceneSwitcher.getInstance().removeData("refreshRulesetWindow");
 
             // Show the popup
-            SceneSwitcher.showPopup("ruleset_config", "Ruleset Configuration", 600, 400);
+            SceneSwitcher.getInstance().showPopup("ruleset_config", "Ruleset Configuration", 600, 400);
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Unexpected error", e);
         }
     }
 
@@ -274,7 +277,7 @@ public class ControllerRuleset implements Initializable {
             return;
         }
 
-        System.out.println("Edit button clicked for item: " + selectedItem);
+        LOGGER.info(() -> "Edit button clicked for item: " + selectedItem);
 
         // Create a dialog to edit the ruleset item details
         Dialog<RulesetItem> dialog = new Dialog<>();
@@ -318,7 +321,7 @@ public class ControllerRuleset implements Initializable {
                         controller.setDescription(description);
                     } catch (SQLException e) {
                         controller.setDescription("Description not available");
-                        e.printStackTrace();
+                        LOGGER.log(Level.SEVERE, "Unexpected error", e);
                     }
                 } else {
                     controller.setDescription("");
@@ -363,7 +366,7 @@ public class ControllerRuleset implements Initializable {
                 return null;
             });
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Unexpected error", e);
         }
 
         // Show the dialog and process the result
@@ -455,9 +458,9 @@ public class ControllerRuleset implements Initializable {
     private void handleOkButtonAction() {
         saveRuleset(currentRuleset);
         try {
-            SceneSwitcher.switchScene("main", "RiverGreen AP");
+            SceneSwitcher.getInstance().switchScene("main", "RiverGreen AP");
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Unexpected error", e);
         }
     }
 
@@ -468,7 +471,7 @@ public class ControllerRuleset implements Initializable {
      */
     @FXML
     private void handleSelectPatientAction() {
-        System.out.println("Select Patient menu item clicked");
+        LOGGER.info("Select Patient menu item clicked");
 
         // Create a dialog to enter patient number
         TextInputDialog dialog = new TextInputDialog();
@@ -483,10 +486,10 @@ public class ControllerRuleset implements Initializable {
                 int patientNumber = Integer.parseInt(patientIdStr);
 
                 // Store the new patient number in the data cache
-                SceneSwitcher.putData("patientNumber", patientNumber);
+                SceneSwitcher.getInstance().putData("patientNumber", patientNumber);
 
                 // Reload the main scene with the new patient number
-                SceneSwitcher.switchScene("main", "RiverGreen Dental Application");
+                SceneSwitcher.getInstance().switchScene("main", "RiverGreen Dental Application");
 
             } catch (NumberFormatException e) {
                 // Show an error if the input is not a valid number
@@ -496,7 +499,7 @@ public class ControllerRuleset implements Initializable {
                 alert.setContentText("Please enter a valid patient number.");
                 alert.showAndWait();
             } catch (IOException e) {
-                e.printStackTrace();
+                LOGGER.log(Level.SEVERE, "Unexpected error", e);
             }
         });
     }
@@ -507,7 +510,7 @@ public class ControllerRuleset implements Initializable {
      */
     @FXML
     private void handleResetAction() {
-        System.out.println("Reset menu item clicked");
+        LOGGER.info("Reset menu item clicked");
 
         // Confirm before resetting
         Alert confirmAlert = new Alert(Alert.AlertType.CONFIRMATION);
@@ -536,7 +539,7 @@ public class ControllerRuleset implements Initializable {
      */
     @FXML
     private void handleCloseAction() {
-        System.out.println("Close menu item clicked");
+        LOGGER.info("Close menu item clicked");
 
         // Get the current stage and close it
         Stage stage = (Stage) listView.getScene().getWindow();
@@ -549,12 +552,12 @@ public class ControllerRuleset implements Initializable {
      */
     @FXML
     private void handlePatientViewAction() {
-        System.out.println("Patient View menu item clicked");
+        LOGGER.info("Patient View menu item clicked");
 
         try {
-            SceneSwitcher.switchScene("main", "RiverGreen Dental Application");
+            SceneSwitcher.getInstance().switchScene("main", "RiverGreen Dental Application");
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Unexpected error", e);
         }
     }
 
@@ -564,16 +567,16 @@ public class ControllerRuleset implements Initializable {
      */
     @FXML
     private void handleManageRulesetsAction() {
-        System.out.println("Manage Rulesets menu item clicked");
+        LOGGER.info("Manage Rulesets menu item clicked");
 
         try {
             // Clear any existing refresh flag
-            SceneSwitcher.removeData("refreshRulesetWindow");
+            SceneSwitcher.getInstance().removeData("refreshRulesetWindow");
 
             // Show the popup
-            SceneSwitcher.showPopup("ruleset_config", "Ruleset Configuration", 600, 400);
+            SceneSwitcher.getInstance().showPopup("ruleset_config", "Ruleset Configuration", 600, 400);
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Unexpected error", e);
         }
     }
 
@@ -583,7 +586,7 @@ public class ControllerRuleset implements Initializable {
      */
     @FXML
     private void handleAboutAction() {
-        System.out.println("About menu item clicked");
+        LOGGER.info("About menu item clicked");
 
         // Create an alert dialog
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
@@ -724,7 +727,7 @@ public class ControllerRuleset implements Initializable {
                         }
                     } catch (SQLException e) {
                         // If there's an error, use an empty description
-                        e.printStackTrace();
+                        LOGGER.log(Level.SEVERE, "Unexpected error", e);
                     }
 
                     RulesetItem item = new RulesetItem(priority, procedureCode, description, teethNumbers);
@@ -735,7 +738,7 @@ public class ControllerRuleset implements Initializable {
                 }
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Unexpected error", e);
         }
 
         return items;
@@ -800,7 +803,7 @@ public class ControllerRuleset implements Initializable {
                 writer.newLine();
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Unexpected error", e);
         }
 
         // Update the rulesets map
@@ -908,7 +911,7 @@ public class ControllerRuleset implements Initializable {
         } catch (SQLException e) {
             // If there's an error, create a default list
             priorities = FXCollections.observableArrayList();
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Unexpected error", e);
         }
 
         // If the list is empty, add some default priorities

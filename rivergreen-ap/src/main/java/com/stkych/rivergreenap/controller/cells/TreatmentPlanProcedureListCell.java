@@ -8,6 +8,8 @@ import javafx.scene.layout.GridPane;
 
 import java.io.IOException;
 import java.text.NumberFormat;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Custom ListCell implementation for displaying TreatmentPlanProcedure objects
@@ -23,6 +25,8 @@ public class TreatmentPlanProcedureListCell extends ListCell<TreatmentPlanProced
     private Label diagnosisLabel;
     private Label descriptionLabel;
     private Label feeLabel;
+
+    private static final Logger LOGGER = Logger.getLogger(TreatmentPlanProcedureListCell.class.getName());
 
     private final NumberFormat currencyFormat = NumberFormat.getCurrencyInstance();
 
@@ -47,7 +51,7 @@ public class TreatmentPlanProcedureListCell extends ListCell<TreatmentPlanProced
             feeLabel = (Label) gridPane.getChildren().get(6);
 
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Failed to load main column FXML", e);
         }
     }
 

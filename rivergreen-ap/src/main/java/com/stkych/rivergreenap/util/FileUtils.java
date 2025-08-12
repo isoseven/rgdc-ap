@@ -2,6 +2,8 @@ package com.stkych.rivergreenap.util;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Utility class for file operations.
@@ -11,6 +13,7 @@ public class FileUtils {
 
     private static final String APP_DIR_NAME = "RiverGreenAP";
     private static final String RULESET_DIR_NAME = "rulesets";
+    private static final Logger LOGGER = Logger.getLogger(FileUtils.class.getName());
 
     /**
      * Gets the application data directory.
@@ -26,7 +29,7 @@ public class FileUtils {
         // Create the directory if it doesn't exist
         if (!appDir.exists()) {
             if (!appDir.mkdir()) {
-                System.err.println("Failed to create application data directory: " + appDir.getAbsolutePath());
+                LOGGER.severe("Failed to create application data directory: " + appDir.getAbsolutePath());
             }
         }
 
@@ -46,7 +49,7 @@ public class FileUtils {
         // Create the directory if it doesn't exist
         if (!rulesetDir.exists()) {
             if (!rulesetDir.mkdir()) {
-                System.err.println("Failed to create ruleset directory: " + rulesetDir.getAbsolutePath());
+                LOGGER.severe("Failed to create ruleset directory: " + rulesetDir.getAbsolutePath());
             }
         }
 
@@ -93,10 +96,9 @@ public class FileUtils {
 
                         // Copy the file
                         java.nio.file.Files.copy(file.toPath(), destFile.toPath());
-                        System.out.println("Migrated ruleset file: " + filename);
+                        LOGGER.info("Migrated ruleset file: " + filename);
                     } catch (IOException e) {
-                        System.err.println("Failed to migrate ruleset file: " + filename);
-                        e.printStackTrace();
+                          LOGGER.log(Level.WARNING, "Failed to migrate ruleset file: " + filename, e);
                     }
                 }
             }

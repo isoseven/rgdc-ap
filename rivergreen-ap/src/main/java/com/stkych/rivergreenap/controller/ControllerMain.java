@@ -2,11 +2,11 @@ package com.stkych.rivergreenap.controller;
 
 import com.stkych.rivergreenap.RiverGreenDB;
 import com.stkych.rivergreenap.SceneSwitcher;
-import com.stkych.rivergreenap.archive.controller.ControllerOld;
 import com.stkych.rivergreenap.controller.cells.TreatmentPlanProcedureCellFactory;
 import com.stkych.rivergreenap.model.RulesetItem;
 import com.stkych.rivergreenap.model.TreatmentPlanProcedure;
 import com.stkych.rivergreenap.util.FileUtils;
+import com.stkych.rivergreenap.util.ExecutionLogger;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -38,6 +38,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.logging.Logger;
+import java.util.logging.Level;
 import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
@@ -46,7 +48,9 @@ import java.util.ResourceBundle;
  * Controller for the main.fxml scene of the application.
  * This is an iteration of the MainController with UI changes.
  */
-public class ControllerMain extends ControllerOld {
+public class ControllerMain extends Controller {
+
+    private static final Logger LOGGER = Logger.getLogger(ControllerMain.class.getName());
 
     // Custom DataFormat for drag and drop operations
     private static final DataFormat PROCEDURE_FORMAT = new DataFormat("application/x-treatmentplanprocedure");
@@ -130,7 +134,7 @@ public class ControllerMain extends ControllerOld {
 
         try {
             // Get the patient number from the data cache
-            Integer patientNumber = (Integer) SceneSwitcher.getData("patientNumber");
+            Integer patientNumber = (Integer) SceneSwitcher.getInstance().getData("patientNumber");
 
             if (patientNumber != null) {
                 // Load procedures for the patient using the RiverGreenDB class
@@ -146,10 +150,10 @@ public class ControllerMain extends ControllerOld {
                 } catch (SQLException e) {
                     // If there's an error getting the full name, fall back to just the patient number
                     patientNameLabel.setText("Patient #" + patientNumber);
-                    System.out.println("Error getting patient full name: " + e.getMessage());
+                    LOGGER.log(Level.WARNING, "Error getting patient full name", e);
                 }
             } else {
-                System.out.println("No patient number found");
+                LOGGER.info("No patient number found");
                 // Create an empty observable list with just the header
                 procedures = FXCollections.observableArrayList();
                 // Add the header item
@@ -162,7 +166,7 @@ public class ControllerMain extends ControllerOld {
         } catch (SQLException e) {
             handleError(e);
             // If there's an error, still add the header so the UI is usable
-            System.out.println("Error loading procedures, adding header only");
+            LOGGER.log(Level.WARNING, "Error loading procedures, adding header only");
             procedures = FXCollections.observableArrayList();
             // Add the header item
             TreatmentPlanProcedure headerItem = new TreatmentPlanProcedure(
@@ -374,21 +378,10 @@ public class ControllerMain extends ControllerOld {
         List<String> sqlQueries = (List<String>) results.get("sqlQueries");
 
         // Store the queries in the data cache for potential future use
-        SceneSwitcher.putData("pendingSqlQueries", sqlQueries);
+        SceneSwitcher.getInstance().putData("pendingSqlQueries", sqlQueries);
 
-        // Print summary
-        System.out.println("\nExecution summary for Patient #" + patientNumber + ":");
-        System.out.println("Status: " + status);
-        System.out.println("Total queries: " + (sqlQueries != null ? sqlQueries.size() : 0));
-        System.out.println("Successful: " + successCount);
-        System.out.println("Failed: " + failureCount);
-
-        if (errorMessages != null && !errorMessages.isEmpty()) {
-            System.out.println("\nError details:");
-            for (String error : errorMessages) {
-                System.out.println("- " + error);
-            }
-        }
+        ExecutionLogger.logSummary(LOGGER, patientNumber, status, sqlQueries,
+                successCount, failureCount, errorMessages);
     }
 
     /**
@@ -397,7 +390,7 @@ public class ControllerMain extends ControllerOld {
      */
     @FXML
     private void handleCancelButtonAction() {
-        System.out.println("Cancel button clicked");
+        LOGGER.info("Cancel button clicked");
         try {
             navigateToMain();
         } catch (IOException e) {
@@ -412,7 +405,7 @@ public class ControllerMain extends ControllerOld {
     @FXML
     private void handleRulesetButtonAction() {
         try {
-            SceneSwitcher.switchScene("ruleset", "Ruleset Configuration");
+            SceneSwitcher.getInstance().switchScene("ruleset", "Ruleset Configuration");
         } catch (IOException e) {
             handleError(e);
         }
@@ -424,7 +417,7 @@ public class ControllerMain extends ControllerOld {
      */
     @FXML
     private void handleSelectPatientAction() {
-        System.out.println("Select Patient menu item clicked");
+        LOGGER.info("Select Patient menu item clicked");
 
         // Create a dialog to enter patient number
         TextInputDialog dialog = new TextInputDialog();
@@ -439,10 +432,10 @@ public class ControllerMain extends ControllerOld {
                 int patientNumber = Integer.parseInt(patientIdStr);
 
                 // Store the new patient number in the data cache
-                SceneSwitcher.putData("patientNumber", patientNumber);
+                SceneSwitcher.getInstance().putData("patientNumber", patientNumber);
 
                 // Reload the main scene with the new patient number
-                SceneSwitcher.switchScene("main", "RiverGreen Dental Application");
+                SceneSwitcher.getInstance().switchScene("main", "RiverGreen Dental Application");
 
             } catch (NumberFormatException e) {
                 // Show an error if the input is not a valid number
@@ -463,7 +456,7 @@ public class ControllerMain extends ControllerOld {
      */
     @FXML
     private void handleResetAction() {
-        System.out.println("Reset menu item clicked");
+        LOGGER.info("Reset menu item clicked");
 
         // Confirm before resetting
         Alert confirmAlert = new Alert(Alert.AlertType.CONFIRMATION);
@@ -474,9 +467,9 @@ public class ControllerMain extends ControllerOld {
         confirmAlert.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
                 // Get the patient number from the data cache
-                Integer patientNumber = (Integer) SceneSwitcher.getData("patientNumber");
+                Integer patientNumber = (Integer) SceneSwitcher.getInstance().getData("patientNumber");
                 if (patientNumber == null) {
-                    System.out.println("No patient number found. Cannot reset procedures.");
+                    LOGGER.warning("No patient number found. Cannot reset procedures.");
                     return;
                 }
 
@@ -535,7 +528,7 @@ public class ControllerMain extends ControllerOld {
      */
     @FXML
     private void handleCloseAction() {
-        System.out.println("Close menu item clicked");
+        LOGGER.info("Close menu item clicked");
 
         // Get the current stage and close it
         Stage stage = (Stage) listView.getScene().getWindow();
@@ -548,7 +541,7 @@ public class ControllerMain extends ControllerOld {
      */
     @FXML
     private void handleAboutAction() {
-        System.out.println("About menu item clicked");
+        LOGGER.info("About menu item clicked");
 
         // Create an alert dialog
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
@@ -692,7 +685,7 @@ public class ControllerMain extends ControllerOld {
                         }
                     } catch (SQLException e) {
                         // If there's an error, use an empty description
-                        System.out.println("Error getting procedure description: " + e.getMessage());
+                        LOGGER.log(Level.WARNING, "Error getting procedure description", e);
                     }
 
                     RulesetItem item = new RulesetItem(priority, procedureCode, description, teethNumbers);
@@ -703,8 +696,7 @@ public class ControllerMain extends ControllerOld {
                 }
             }
         } catch (IOException e) {
-            System.out.println("Error loading ruleset from file " + filepath + ": " + e.getMessage());
-            e.printStackTrace();
+            LOGGER.log(Level.WARNING, "Error loading ruleset from file " + filepath, e);
         }
 
         return items;
@@ -716,7 +708,7 @@ public class ControllerMain extends ControllerOld {
      */
     private void setupRulesetSelectMenu() {
         if (rulesetSelectMenuButton == null) {
-            System.out.println("Ruleset select menu button is null");
+            LOGGER.warning("Ruleset select menu button is null");
             return;
         }
 
@@ -892,7 +884,7 @@ public class ControllerMain extends ControllerOld {
      */
     private void saveChangesToDatabase() {
         // Get the patient number from the data cache
-        Integer patientNumber = (Integer) SceneSwitcher.getData("patientNumber");
+        Integer patientNumber = (Integer) SceneSwitcher.getInstance().getData("patientNumber");
         if (patientNumber == null) {
             return;
         }

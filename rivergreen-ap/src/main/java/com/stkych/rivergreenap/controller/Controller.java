@@ -1,8 +1,9 @@
-package com.stkych.rivergreenap.archive;
+package com.stkych.rivergreenap.controller;
 
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import com.stkych.rivergreenap.SceneSwitcher;
+import java.util.logging.Logger;
 
 import java.io.IOException;
 import java.net.URL;
@@ -14,6 +15,7 @@ import java.util.ResourceBundle;
  * Implements Initializable to provide a standard initialization method.
  */
 public abstract class Controller implements Initializable {
+    private static final Logger LOGGER = Logger.getLogger(Controller.class.getName());
 
     /**
      * Initializes the controller.
@@ -60,7 +62,7 @@ public abstract class Controller implements Initializable {
      * @throws IOException If the FXML file cannot be loaded
      */
     protected void navigateToMain() throws IOException {
-        SceneSwitcher.switchScene("sceneMain", "RiverGreen Dental Application");
+        SceneSwitcher.getInstance().switchScene("sceneMain", "RiverGreen Dental Application");
     }
 
     /**
@@ -69,7 +71,7 @@ public abstract class Controller implements Initializable {
      * @throws IOException If the FXML file cannot be loaded
      */
     protected void navigateToConfig() throws IOException {
-        SceneSwitcher.switchScene("sceneConfig", "Configuration");
+        SceneSwitcher.getInstance().switchScene("sceneConfig", "Configuration");
     }
 
     /**
@@ -78,7 +80,7 @@ public abstract class Controller implements Initializable {
      * @throws IOException If the FXML file cannot be loaded
      */
     protected void popupConfigEdit() throws IOException {
-        SceneSwitcher.showPopup("sceneConfigEdit", "Edit Configuration");
+        SceneSwitcher.getInstance().showPopup("sceneConfigEdit", "Edit Configuration");
     }
 
     /**
@@ -87,7 +89,7 @@ public abstract class Controller implements Initializable {
      * @throws IOException If the FXML file cannot be loaded
      */
     protected void popupConfigNew() throws IOException {
-        SceneSwitcher.showPopup("sceneConfigNew", "New Configuration");
+        SceneSwitcher.getInstance().showPopup("sceneConfigNew", "New Configuration");
     }
     /**
      * Handles errors that occur during controller operations.
@@ -96,8 +98,12 @@ public abstract class Controller implements Initializable {
      */
     protected void handleError(Exception e) {
         // Log the error
-        System.err.println("Error in controller: " + e.getMessage());
-        e.printStackTrace();
+        LOGGER.severe("Error in controller: " + e.getMessage());
+        LOGGER.severe(() -> {
+            java.io.StringWriter sw = new java.io.StringWriter();
+            e.printStackTrace(new java.io.PrintWriter(sw));
+            return sw.toString();
+        });
 
         // In a real application, you might want to show an error dialog to the user
     }
