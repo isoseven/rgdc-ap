@@ -36,23 +36,9 @@
           <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
         </rowConstraints>
          <children>
-            <!-- Quadrant 1: Top-left - Procedure Code -->
-            <VBox alignment="CENTER" GridPane.columnIndex="0" GridPane.rowIndex="0">
-               <children>
-                  <Label text="Procedure Code" textAlignment="CENTER">
-                     <VBox.margin>
-                        <Insets bottom="5.0" />
-                     </VBox.margin>
-                  </Label>
-                  <ComboBox fx:id="procedureCodeComboBox" editable="true" prefWidth="250.0" promptText="Procedure Code" />
-               </children>
-               <padding>
-                  <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
-               </padding>
-            </VBox>
 
-            <!-- Quadrant 2: Top-right - Codes -->
-            <VBox alignment="CENTER" GridPane.columnIndex="1" GridPane.rowIndex="0">
+            <!-- Quadrant 1: Top-left - Codes -->
+            <VBox alignment="CENTER" GridPane.columnIndex="0" GridPane.rowIndex="0">
                <children>
                   <Label text="Codes" textAlignment="CENTER">
                      <VBox.margin>
@@ -60,6 +46,21 @@
                      </VBox.margin>
                   </Label>
                   <TextField fx:id="codesTextField" promptText="Codes (without D prefix)" />
+               </children>
+               <padding>
+                  <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+               </padding>
+            </VBox>
+
+            <!-- Quadrant 2: Top-right - Teeth -->
+            <VBox alignment="CENTER" GridPane.columnIndex="1" GridPane.rowIndex="0">
+               <children>
+                  <Label text="Teeth" textAlignment="CENTER">
+                     <VBox.margin>
+                        <Insets bottom="5.0" />
+                     </VBox.margin>
+                  </Label>
+                  <TextField fx:id="teethTextField" promptText="Teeth (e.g., 1-3;4;5;6-10)" />
                </children>
                <padding>
                   <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
@@ -90,21 +91,6 @@
                      </VBox.margin>
                   </Label>
                   <ComboBox fx:id="priorityComboBox" editable="true" prefWidth="250.0" promptText="Priority" />
-               </children>
-               <padding>
-                  <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
-               </padding>
-            </VBox>
-
-            <!-- Teeth TextField at the bottom -->
-            <VBox alignment="CENTER" GridPane.columnSpan="2" GridPane.rowIndex="2">
-               <children>
-                  <Label text="Teeth" textAlignment="CENTER">
-                     <VBox.margin>
-                        <Insets bottom="5.0" />
-                     </VBox.margin>
-                  </Label>
-                  <TextField fx:id="teethTextField" promptText="Teeth (e.g., 1-3;4;5;6-10)" />
                </children>
                <padding>
                   <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />

@@ -245,7 +245,7 @@ public class ControllerRuleset implements Initializable {
     }
 
     /**
-     * Handles the edit ruleset button action.
+     * Handles the manage rulesets button action.
      * Opens the ruleset configuration window as a popup.
      */
     @FXML

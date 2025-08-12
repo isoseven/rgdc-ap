@@ -68,7 +68,7 @@
                   <Separator prefWidth="200.0" />
                   <Pane prefHeight="519.0" prefWidth="271.0">
                      <children>
-                        <Button fx:id="editButton1" alignment="CENTER" layoutX="90.0" layoutY="14.0" mnemonicParsing="false" onAction="#handleEditRulesetButtonAction" prefHeight="25.0" prefWidth="92.0" text="Edit Ruleset" />
+                        <Button fx:id="editButton1" alignment="CENTER" layoutX="90.0" layoutY="14.0" mnemonicParsing="false" onAction="#handleEditRulesetButtonAction" prefHeight="25.0" prefWidth="120.0" text="Manage Rulesets" />
                      </children></Pane>
                   <GridPane>
                      <columnConstraints>

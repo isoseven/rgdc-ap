@@ -19,9 +19,6 @@ import java.util.ResourceBundle;
 public class RulesetDialogController implements Initializable {
 
     @FXML
-    private ComboBox<String> procedureCodeComboBox;
-
-    @FXML
     private ComboBox<String> priorityComboBox;
 
     @FXML
@@ -36,7 +33,6 @@ public class RulesetDialogController implements Initializable {
     @FXML
     private TextField codesTextField;
 
-    private String selectedProcedureCode;
     private String selectedPriority;
     private String selectedDiagnosis;
     private String procedureDescription;
@@ -50,14 +46,6 @@ public class RulesetDialogController implements Initializable {
      */
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        // Initialize procedure code combo box
-        try {
-            ObservableList<String> procedureCodes = RiverGreenDB.getAllProcedureCodesObservable();
-            procedureCodeComboBox.setItems(procedureCodes);
-        } catch (SQLException e) {
-            showErrorAlert("Error loading procedure codes", e.getMessage());
-        }
-
         // Initialize priority combo box
         try {
             ObservableList<String> priorities = RiverGreenDB.getAllPrioritiesObservable();
@@ -73,14 +61,6 @@ public class RulesetDialogController implements Initializable {
         } catch (SQLException e) {
             showErrorAlert("Error loading diagnoses", e.getMessage());
         }
-
-        // Add listener to procedure code combo box to update description
-        procedureCodeComboBox.valueProperty().addListener((observable, oldValue, newValue) -> {
-            if (newValue != null) {
-                selectedProcedureCode = newValue;
-                updateDescription(newValue);
-            }
-        });
 
         // Add listener to priority combo box
         priorityComboBox.valueProperty().addListener((observable, oldValue, newValue) -> {
@@ -107,29 +87,21 @@ public class RulesetDialogController implements Initializable {
         // Add listener to codes text field
         codesTextField.textProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue != null && !newValue.isEmpty()) {
-                // Add 'D' prefix if not present
+                // Add 'D' prefix if not present for description lookup
                 String code = newValue;
                 if (!code.startsWith("D")) {
                     code = "D" + code;
                 }
-                // Update the procedure code combo box
-                procedureCodeComboBox.setValue(code);
+
+                // Update description based on the code
+                try {
+                    String description = RiverGreenDB.getProcedureCodeDescription(code);
+                    setDescription("Description: " + description);
+                } catch (SQLException e) {
+                    setDescription("Description not available");
+                }
             }
         });
-    }
-
-    /**
-     * Updates the description with the description of the selected procedure code.
-     *
-     * @param procedureCode The procedure code to get the description for
-     */
-    private void updateDescription(String procedureCode) {
-        try {
-            String description = RiverGreenDB.getProcedureCodeDescription(procedureCode);
-            setDescription("Description: " + description);
-        } catch (SQLException e) {
-            showErrorAlert("Error loading procedure description", e.getMessage());
-        }
     }
 
     /**
@@ -155,15 +127,6 @@ public class RulesetDialogController implements Initializable {
         // Close the dialog
         Stage stage = (Stage) okButton.getScene().getWindow();
         stage.close();
-    }
-
-    /**
-     * Gets the procedure code combo box.
-     *
-     * @return The procedure code combo box
-     */
-    public ComboBox<String> getProcedureCodeComboBox() {
-        return procedureCodeComboBox;
     }
 
     /**
@@ -194,14 +157,12 @@ public class RulesetDialogController implements Initializable {
     }
 
     /**
-     * Gets the procedure code as a string.
-     * If the codes text field is not empty, returns its value with 'D' prefix.
-     * Otherwise, returns the selected procedure code from the combo box.
+     * Gets the procedure code as a string from the codes text field.
      *
      * @return The procedure code as a string
      */
     public String getProcedureCode() {
-        // If the codes text field is not empty, use its value
+        // Get the code from the codes text field
         if (codesTextField != null && !codesTextField.getText().isEmpty()) {
             String code = codesTextField.getText();
             // Add 'D' prefix if not present
@@ -210,8 +171,7 @@ public class RulesetDialogController implements Initializable {
             }
             return code;
         }
-        // Otherwise, use the selected procedure code from the combo box
-        return selectedProcedureCode;
+        return "";
     }
 
     /**
@@ -299,5 +259,51 @@ public class RulesetDialogController implements Initializable {
         if (teethTextField != null) {
             teethTextField.setText(teethString);
         }
+    }
+
+    /**
+     * Sets the procedure code in the codes text field.
+     * If the code starts with 'D', it will be removed before setting the text.
+     *
+     * @param procedureCode The procedure code to set
+     */
+    public void setProcedureCode(String procedureCode) {
+        if (procedureCode == null || procedureCode.isEmpty()) {
+            return;
+        }
+
+        // Remove 'D' prefix if present
+        if (procedureCode.startsWith("D")) {
+            procedureCode = procedureCode.substring(1);
+        }
+
+        // Update the codes text field
+        if (codesTextField != null) {
+            codesTextField.setText(procedureCode);
+        }
+    }
+
+    /**
+     * Gets the procedure code combo box.
+     * This method is provided for compatibility with code that expects the old interface.
+     * It returns a dummy ComboBox that delegates to the new implementation.
+     *
+     * @return A dummy ComboBox that delegates to the new implementation
+     */
+    public ComboBox<String> getProcedureCodeComboBox() {
+        // Create a dummy ComboBox that delegates to the new implementation
+        ComboBox<String> dummyComboBox = new ComboBox<>();
+
+        // Make it editable
+        dummyComboBox.setEditable(true);
+
+        // Set up a dummy value property that delegates to the new implementation
+        dummyComboBox.valueProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue != null && !newValue.isEmpty()) {
+                setProcedureCode(newValue);
+            }
+        });
+
+        return dummyComboBox;
     }
 }
