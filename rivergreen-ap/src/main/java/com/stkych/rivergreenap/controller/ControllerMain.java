@@ -641,50 +641,55 @@ public class ControllerMain extends ControllerOld {
 
             String line;
             while ((line = reader.readLine()) != null) {
+                // Skip empty lines
+                if (line.trim().isEmpty()) {
+                    continue;
+                }
+
                 // Split by comma
                 String[] parts = line.split(",");
 
                 if (parts.length >= 2) {
-                    String priority = parts[0];
-                    String procedureCode = parts[1];
-                    String teethNumbers = "";
+                    // New format: priority,diagnosis,teeth,codes
+                    String priority = parts[0].trim();
                     String diagnosis = "";
+                    String teethNumbers = "";
+                    String procedureCode = "";
 
-                    // If there are more than 2 parts, the rest are teeth numbers and diagnosis
-                    if (parts.length > 2) {
-                        // If there are exactly 3 parts, the third part could be either teeth numbers or diagnosis
-                        if (parts.length == 3) {
-                            String thirdPart = parts[2].trim();
-                            // Check if the third part contains hyphens, which would indicate teeth numbers
-                            if (thirdPart.contains("-")) {
-                                teethNumbers = thirdPart;
-                            } else {
-                                // If it doesn't contain hyphens, it's probably a diagnosis
-                                diagnosis = thirdPart;
-                            }
-                        } 
-                        // If there are 4 or more parts, the third part is teeth numbers and the fourth part is diagnosis
-                        else if (parts.length >= 4) {
-                            teethNumbers = parts[2].trim();
+                    // Get diagnosis if present
+                    if (parts.length > 1 && !parts[1].trim().isEmpty()) {
+                        diagnosis = parts[1].trim();
+                    }
 
-                            // Diagnosis is all parts from index 3 to the end
-                            StringBuilder diagnosisBuilder = new StringBuilder();
-                            for (int i = 3; i < parts.length; i++) {
-                                if (i > 3) diagnosisBuilder.append(",");
-                                diagnosisBuilder.append(parts[i].trim());
-                            }
-                            diagnosis = diagnosisBuilder.toString();
-                        } else {
-                            // This should never happen, but just in case
-                            teethNumbers = "";
-                            diagnosis = "";
+                    // Get teeth numbers if present
+                    if (parts.length > 2 && !parts[2].trim().isEmpty()) {
+                        teethNumbers = parts[2].trim();
+                    }
+
+                    // Get procedure code if present
+                    if (parts.length > 3 && !parts[3].trim().isEmpty()) {
+                        // Add 'D' prefix if not present
+                        procedureCode = parts[3].trim();
+                        if (!procedureCode.startsWith("D")) {
+                            procedureCode = "D" + procedureCode;
                         }
+                    }
+
+                    // Handle old format files (priority,procedureCode,teethNumbers,diagnosis)
+                    // Check if we have a valid procedure code in the second position
+                    if (diagnosis.startsWith("D") && (procedureCode.isEmpty() || !procedureCode.startsWith("D"))) {
+                        // This is likely the old format
+                        procedureCode = diagnosis;
+                        diagnosis = parts.length > 3 ? parts[3].trim() : "";
+                        teethNumbers = parts.length > 2 ? parts[2].trim() : "";
                     }
 
                     // Always fetch description from the database
                     String description = "";
                     try {
-                        description = RiverGreenDB.getProcedureCodeDescription(procedureCode);
+                        if (!procedureCode.isEmpty()) {
+                            description = RiverGreenDB.getProcedureCodeDescription(procedureCode);
+                        }
                     } catch (SQLException e) {
                         // If there's an error, use an empty description
                         System.out.println("Error getting procedure description: " + e.getMessage());
@@ -778,14 +783,9 @@ public class ControllerMain extends ControllerOld {
             // Get teeth information from the teethNumbers property
             List<String> ruleTeeth = new ArrayList<>();
             String teethNumbers = item.getTeethNumbers();
-            if (teethNumbers != null && !teethNumbers.isEmpty()) {
-                // Use hyphens as the delimiter, not commas
-                // This is important because teeth numbers are stored with hyphens in the CSV file
-                // and loaded with hyphens in the loadRulesetFromFile method
-                String[] teeth = teethNumbers.split("-");
-                for (String tooth : teeth) {
-                    ruleTeeth.add(tooth.trim());
-                }
+            if (teethNumbers != null && !teethNumbers.isEmpty() && !teethNumbers.equalsIgnoreCase("None")) {
+                // Parse the teeth numbers in the new format (using - for ranges and ; as delimiters)
+                ruleTeeth = parseTeethNumbers(teethNumbers);
             }
 
             // Counter for tracking how many items this rule is applied to
@@ -832,6 +832,58 @@ public class ControllerMain extends ControllerOld {
 
         // No longer automatically save changes to the database
         // saveChangesToDatabase();
+    }
+
+    /**
+     * Parses teeth numbers from the new format (using - for ranges and ; as delimiters).
+     * Example: "1-3;4;5;6-10" will return a list containing "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"
+     *
+     * @param teethNumbers The teeth numbers in the new format
+     * @return A list of individual tooth numbers
+     */
+    private List<String> parseTeethNumbers(String teethNumbers) {
+        List<String> result = new ArrayList<>();
+
+        if (teethNumbers == null || teethNumbers.isEmpty()) {
+            return result;
+        }
+
+        // Split by semicolon to get individual teeth or ranges
+        String[] parts = teethNumbers.split(";");
+
+        for (String part : parts) {
+            part = part.trim();
+            if (part.isEmpty()) {
+                continue;
+            }
+
+            // Check if this part is a range (contains a hyphen)
+            if (part.contains("-")) {
+                String[] range = part.split("-");
+                if (range.length == 2) {
+                    try {
+                        int start = Integer.parseInt(range[0].trim());
+                        int end = Integer.parseInt(range[1].trim());
+
+                        // Add all teeth in the range
+                        for (int i = start; i <= end; i++) {
+                            result.add(String.valueOf(i));
+                        }
+                    } catch (NumberFormatException e) {
+                        // If parsing fails, just add the original part
+                        result.add(part);
+                    }
+                } else {
+                    // If the range format is invalid, just add the original part
+                    result.add(part);
+                }
+            } else {
+                // This is a single tooth number
+                result.add(part);
+            }
+        }
+
+        return result;
     }
 
     /**

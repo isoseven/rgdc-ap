@@ -6,14 +6,10 @@ import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
-import javafx.scene.layout.FlowPane;
-import javafx.scene.layout.GridPane;
 import javafx.stage.Stage;
 
 import java.net.URL;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.ResourceBundle;
 
 /**
@@ -32,19 +28,18 @@ public class RulesetDialogController implements Initializable {
     private ComboBox<String> diagnosisComboBox;
 
     @FXML
-    private Label descriptionLabel;
-
-    @FXML
     private Button okButton;
 
     @FXML
-    private GridPane teethGridPane;
+    private TextField teethTextField;
 
-    private final List<CheckBox> teethCheckboxes = new ArrayList<>();
+    @FXML
+    private TextField codesTextField;
+
     private String selectedProcedureCode;
     private String selectedPriority;
     private String selectedDiagnosis;
-    private final List<String> selectedTeeth = new ArrayList<>();
+    private String procedureDescription;
 
     /**
      * Initializes the controller.
@@ -79,9 +74,6 @@ public class RulesetDialogController implements Initializable {
             showErrorAlert("Error loading diagnoses", e.getMessage());
         }
 
-        // Create checkboxes for teeth 1-32
-        createTeethCheckboxes();
-
         // Add listener to procedure code combo box to update description
         procedureCodeComboBox.valueProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue != null) {
@@ -111,75 +103,23 @@ public class RulesetDialogController implements Initializable {
                 }
             }
         });
-    }
 
-    /**
-     * Creates checkboxes for teeth 1-32 and adds them to the teethGridPane.
-     * Arranges teeth in a 2x16 grid with 1-16 on top and 32-17 on bottom.
-     * Adds labels above the checkboxes showing the tooth numbers.
-     */
-    private void createTeethCheckboxes() {
-        teethGridPane.getChildren().clear();
-        teethCheckboxes.clear();
-
-        // Add labels for teeth 1-16 (top row)
-        for (int i = 1; i <= 16; i++) {
-            Label label = new Label(String.valueOf(i));
-            label.setAlignment(javafx.geometry.Pos.CENTER);
-            teethGridPane.add(label, i - 1, 0); // Add to top row (row 0)
-        }
-
-        // Add labels for teeth 32-17 (middle row, in reverse order)
-        for (int i = 32; i >= 17; i--) {
-            Label label = new Label(String.valueOf(i));
-            label.setAlignment(javafx.geometry.Pos.CENTER);
-            teethGridPane.add(label, 32 - i, 1); // Add to middle row (row 1)
-        }
-
-        // Create checkboxes for teeth 1-16 (bottom row)
-        for (int i = 1; i <= 16; i++) {
-            CheckBox checkBox = new CheckBox();
-            // Remove the text from the checkbox but keep the userData for identification
-            checkBox.setText("");
-            checkBox.setUserData(i);
-            addCheckBoxListener(checkBox);
-            teethCheckboxes.add(checkBox);
-            teethGridPane.add(checkBox, i - 1, 2); // Add to bottom row (row 2)
-        }
-
-        // Create checkboxes for teeth 32-17 (bottom row, in reverse order)
-        for (int i = 32; i >= 17; i--) {
-            CheckBox checkBox = new CheckBox();
-            // Remove the text from the checkbox but keep the userData for identification
-            checkBox.setText("");
-            checkBox.setUserData(i);
-            addCheckBoxListener(checkBox);
-            teethCheckboxes.add(checkBox);
-            teethGridPane.add(checkBox, 32 - i, 3); // Add to bottom row (row 3)
-        }
-    }
-
-    /**
-     * Adds a listener to a checkbox to update the selectedTeeth list.
-     * 
-     * @param checkBox The checkbox to add the listener to
-     */
-    private void addCheckBoxListener(CheckBox checkBox) {
-        checkBox.selectedProperty().addListener((observable, oldValue, newValue) -> {
-            // Use userData instead of text for tooth identification
-            String toothNumber = String.valueOf(checkBox.getUserData());
-            if (newValue) {
-                if (!selectedTeeth.contains(toothNumber)) {
-                    selectedTeeth.add(toothNumber);
+        // Add listener to codes text field
+        codesTextField.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue != null && !newValue.isEmpty()) {
+                // Add 'D' prefix if not present
+                String code = newValue;
+                if (!code.startsWith("D")) {
+                    code = "D" + code;
                 }
-            } else {
-                selectedTeeth.remove(toothNumber);
+                // Update the procedure code combo box
+                procedureCodeComboBox.setValue(code);
             }
         });
     }
 
     /**
-     * Updates the description label with the description of the selected procedure code.
+     * Updates the description with the description of the selected procedure code.
      *
      * @param procedureCode The procedure code to get the description for
      */
@@ -255,65 +195,82 @@ public class RulesetDialogController implements Initializable {
 
     /**
      * Gets the procedure code as a string.
+     * If the codes text field is not empty, returns its value with 'D' prefix.
+     * Otherwise, returns the selected procedure code from the combo box.
      *
      * @return The procedure code as a string
      */
     public String getProcedureCode() {
+        // If the codes text field is not empty, use its value
+        if (codesTextField != null && !codesTextField.getText().isEmpty()) {
+            String code = codesTextField.getText();
+            // Add 'D' prefix if not present
+            if (!code.startsWith("D")) {
+                code = "D" + code;
+            }
+            return code;
+        }
+        // Otherwise, use the selected procedure code from the combo box
         return selectedProcedureCode;
     }
 
     /**
      * Gets the priority as a string.
+     * If the priority combo box has a value that's not in the list, returns that value.
+     * Otherwise, returns the selected priority.
      *
      * @return The priority as a string
      */
     public String getPriority() {
+        // Check if the combo box has a value that's not in the list
+        if (priorityComboBox != null && priorityComboBox.getEditor() != null) {
+            String editorText = priorityComboBox.getEditor().getText();
+            if (editorText != null && !editorText.isEmpty() && 
+                (selectedPriority == null || !editorText.equals(selectedPriority))) {
+                return editorText;
+            }
+        }
         return selectedPriority;
     }
 
     /**
      * Gets the diagnosis as a string.
+     * If the diagnosis combo box has a value that's not in the list, returns that value.
+     * Otherwise, returns the selected diagnosis.
      *
      * @return The diagnosis as a string
      */
     public String getDiagnosis() {
+        // Check if the combo box has a value that's not in the list
+        if (diagnosisComboBox != null && diagnosisComboBox.getEditor() != null) {
+            String editorText = diagnosisComboBox.getEditor().getText();
+            if (editorText != null && !editorText.isEmpty() && 
+                (selectedDiagnosis == null || !editorText.equals(selectedDiagnosis))) {
+                return editorText;
+            }
+        }
         return selectedDiagnosis;
     }
 
     /**
-     * Gets the selected teeth as a list of strings.
+     * Gets the selected teeth as a string from the teeth text field.
      *
-     * @return The selected teeth as a list of strings
-     */
-    public List<String> getSelectedTeeth() {
-        return new ArrayList<>(selectedTeeth);
-    }
-
-    /**
-     * Gets the selected teeth as a hyphen-separated string.
-     *
-     * @return The selected teeth as a hyphen-separated string
+     * @return The selected teeth as a string
      */
     public String getSelectedTeethAsString() {
-        return String.join("-", selectedTeeth);
+        if (teethTextField != null && !teethTextField.getText().isEmpty()) {
+            return teethTextField.getText();
+        }
+        return "";
     }
 
     /**
-     * Gets the description label.
+     * Gets the procedure description.
      *
-     * @return The description label
+     * @return The procedure description
      */
-    public Label getDescriptionLabel() {
-        return descriptionLabel;
-    }
-
-    /**
-     * Gets the teeth grid pane.
-     *
-     * @return The teeth grid pane
-     */
-    public GridPane getTeethGridPane() {
-        return teethGridPane;
+    public String getDescription() {
+        return procedureDescription;
     }
 
     /**
@@ -322,51 +279,25 @@ public class RulesetDialogController implements Initializable {
      * @param description The description text
      */
     public void setDescription(String description) {
-        descriptionLabel.setText(description);
+        this.procedureDescription = description;
     }
 
     /**
      * Sets the selected teeth from a string representation.
-     * The string format can be tooth numbers separated by hyphens or commas, e.g., "1-2-3-4" or "1, 2, 3, 4".
+     * The string format can be tooth numbers separated by hyphens, commas, or semicolons,
+     * e.g., "1-2-3-4" or "1, 2, 3, 4" or "1-3;4;5;6-10".
      *
      * @param teethString The string representation of selected teeth
      */
     public void setSelectedTeethFromString(String teethString) {
-        // Clear current selections
-        for (CheckBox checkBox : teethCheckboxes) {
-            checkBox.setSelected(false);
-        }
-        selectedTeeth.clear();
-
         // If the string is empty or null, return
         if (teethString == null || teethString.isEmpty()) {
             return;
         }
 
-        // Split the string by hyphens or commas
-        String[] teethArray;
-        if (teethString.contains(",")) {
-            teethArray = teethString.split(",");
-        } else {
-            teethArray = teethString.split("-");
-        }
-
-        // Select the checkboxes for the specified teeth
-        for (String toothStr : teethArray) {
-            try {
-                int toothNumber = Integer.parseInt(toothStr.trim());
-                // Find the checkbox with this tooth number as userData
-                for (CheckBox checkBox : teethCheckboxes) {
-                    if (checkBox.getUserData().equals(toothNumber)) {
-                        checkBox.setSelected(true);
-                        // The listener will add the tooth to selectedTeeth
-                        break;
-                    }
-                }
-            } catch (NumberFormatException e) {
-                // Skip non-numeric values
-                System.out.println("Skipping non-numeric tooth value: " + toothStr);
-            }
+        // Update the teeth text field
+        if (teethTextField != null) {
+            teethTextField.setText(teethString);
         }
     }
 }

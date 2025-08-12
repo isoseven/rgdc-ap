@@ -214,7 +214,7 @@ public class ControllerRuleset implements Initializable {
                     if (procedureCode == null) {
                         procedureCode = controller.getProcedureCodeComboBox().getEditor().getText();
                     }
-                    String description = controller.getDescriptionLabel().getText();
+                    String description = controller.getDescription();
                     String teethNumbers = controller.getSelectedTeethAsString();
                     String diagnosis = controller.getDiagnosis();
 
@@ -339,7 +339,7 @@ public class ControllerRuleset implements Initializable {
                     if (procedureCode == null) {
                         procedureCode = controller.getProcedureCodeComboBox().getEditor().getText();
                     }
-                    String description = controller.getDescriptionLabel().getText();
+                    String description = controller.getDescription();
                     String teethNumbers = controller.getSelectedTeethAsString();
                     String diagnosis = controller.getDiagnosis();
 
@@ -673,50 +673,55 @@ public class ControllerRuleset implements Initializable {
 
             String line;
             while ((line = reader.readLine()) != null) {
+                // Skip empty lines
+                if (line.trim().isEmpty()) {
+                    continue;
+                }
+
                 // Split by comma
                 String[] parts = line.split(",");
 
                 if (parts.length >= 2) {
-                    String priority = parts[0];
-                    String procedureCode = parts[1];
-                    String teethNumbers = "";
+                    // New format: priority,diagnosis,teeth,codes
+                    String priority = parts[0].trim();
                     String diagnosis = "";
+                    String teethNumbers = "";
+                    String procedureCode = "";
 
-                    // If there are more than 2 parts, the rest are teeth numbers and diagnosis
-                    if (parts.length > 2) {
-                        // If there are exactly 3 parts, the third part could be either teeth numbers or diagnosis
-                        if (parts.length == 3) {
-                            String thirdPart = parts[2].trim();
-                            // Check if the third part contains hyphens, which would indicate teeth numbers
-                            if (thirdPart.contains("-")) {
-                                teethNumbers = thirdPart;
-                            } else {
-                                // If it doesn't contain hyphens, it's probably a diagnosis
-                                diagnosis = thirdPart;
-                            }
-                        } 
-                        // If there are 4 or more parts, the third part is teeth numbers and the fourth part is diagnosis
-                        else if (parts.length >= 4) {
-                            teethNumbers = parts[2].trim();
+                    // Get diagnosis if present
+                    if (parts.length > 1 && !parts[1].trim().isEmpty()) {
+                        diagnosis = parts[1].trim();
+                    }
 
-                            // Diagnosis is all parts from index 3 to the end
-                            StringBuilder diagnosisBuilder = new StringBuilder();
-                            for (int i = 3; i < parts.length; i++) {
-                                if (i > 3) diagnosisBuilder.append(",");
-                                diagnosisBuilder.append(parts[i].trim());
-                            }
-                            diagnosis = diagnosisBuilder.toString();
-                        } else {
-                            // This should never happen, but just in case
-                            teethNumbers = "";
-                            diagnosis = "";
+                    // Get teeth numbers if present
+                    if (parts.length > 2 && !parts[2].trim().isEmpty()) {
+                        teethNumbers = parts[2].trim();
+                    }
+
+                    // Get procedure code if present
+                    if (parts.length > 3 && !parts[3].trim().isEmpty()) {
+                        // Add 'D' prefix if not present
+                        procedureCode = parts[3].trim();
+                        if (!procedureCode.startsWith("D")) {
+                            procedureCode = "D" + procedureCode;
                         }
+                    }
+
+                    // Handle old format files (priority,procedureCode,teethNumbers,diagnosis)
+                    // Check if we have a valid procedure code in the second position
+                    if (diagnosis.startsWith("D") && (procedureCode.isEmpty() || !procedureCode.startsWith("D"))) {
+                        // This is likely the old format
+                        procedureCode = diagnosis;
+                        diagnosis = parts.length > 3 ? parts[3].trim() : "";
+                        teethNumbers = parts.length > 2 ? parts[2].trim() : "";
                     }
 
                     // Always fetch description from the database
                     String description = "";
                     try {
-                        description = RiverGreenDB.getProcedureCodeDescription(procedureCode);
+                        if (!procedureCode.isEmpty()) {
+                            description = RiverGreenDB.getProcedureCodeDescription(procedureCode);
+                        }
                     } catch (SQLException e) {
                         // If there's an error, use an empty description
                         e.printStackTrace();
@@ -760,24 +765,35 @@ public class ControllerRuleset implements Initializable {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
             for (int i = 1; i < rulesetItems.size(); i++) {
                 RulesetItem item = rulesetItems.get(i);
-                // Write priority, procedure code, teeth numbers, and diagnosis (not description)
+                // Write priority, diagnosis, teeth, codes in the new format
                 // Use comma as delimiter
                 StringBuilder line = new StringBuilder();
                 line.append(item.getPriority()).append(",");
-                line.append(item.getProcedureCode());
-
-                // Add teeth numbers if present
-                String teethNumbers = item.getTeethNumbers();
-                if (teethNumbers != null && !teethNumbers.isEmpty()) {
-                    // Replace commas with hyphens in teeth numbers
-                    String formattedTeethNumbers = teethNumbers.replace(",", "-");
-                    line.append(",").append(formattedTeethNumbers);
-                }
 
                 // Add diagnosis if present
                 String diagnosis = item.getDiagnosis();
                 if (diagnosis != null && !diagnosis.isEmpty()) {
-                    line.append(",").append(diagnosis);
+                    line.append(diagnosis);
+                }
+                line.append(",");
+
+                // Add teeth numbers if present
+                String teethNumbers = item.getTeethNumbers();
+                if (teethNumbers != null && !teethNumbers.isEmpty()) {
+                    // Format teeth numbers with ranges using - and ; as delimiters
+                    String formattedTeethNumbers = formatTeethNumbers(teethNumbers);
+                    line.append(formattedTeethNumbers);
+                }
+                line.append(",");
+
+                // Add procedure code (without 'D' prefix)
+                String procedureCode = item.getProcedureCode();
+                if (procedureCode != null && !procedureCode.isEmpty()) {
+                    // Remove 'D' prefix if present
+                    if (procedureCode.startsWith("D")) {
+                        procedureCode = procedureCode.substring(1);
+                    }
+                    line.append(procedureCode);
                 }
 
                 writer.write(line.toString());
@@ -806,6 +822,74 @@ public class ControllerRuleset implements Initializable {
         rulesetItems.clear();
         rulesetItems.add(new RulesetItem("Header", "Header", "Description", "Teeth"));
         rulesetItems.addAll(itemsWithoutHeader);
+    }
+
+    /**
+     * Formats teeth numbers to use ranges with - and ; as delimiters.
+     * Example: "1,2,3,4,6,7,8" becomes "1-4;6-8"
+     *
+     * @param teethNumbers The teeth numbers as a comma-separated or hyphen-separated list
+     * @return The formatted teeth numbers using ranges with - and ; as delimiters
+     */
+    private String formatTeethNumbers(String teethNumbers) {
+        if (teethNumbers == null || teethNumbers.isEmpty()) {
+            return "";
+        }
+
+        // Replace hyphens with commas to normalize the input
+        String normalizedInput = teethNumbers.replace("-", ",");
+
+        // Split by comma
+        String[] parts = normalizedInput.split(",");
+
+        // Convert to integers for easier processing
+        List<Integer> numbers = new ArrayList<>();
+        for (String part : parts) {
+            try {
+                numbers.add(Integer.parseInt(part.trim()));
+            } catch (NumberFormatException e) {
+                // Skip non-numeric values
+            }
+        }
+
+        // Sort the numbers
+        Collections.sort(numbers);
+
+        // Build the formatted string with ranges
+        StringBuilder result = new StringBuilder();
+        if (!numbers.isEmpty()) {
+            int start = numbers.get(0);
+            int prev = start;
+
+            for (int i = 1; i < numbers.size(); i++) {
+                int current = numbers.get(i);
+
+                // If not consecutive, end the current range and start a new one
+                if (current != prev + 1) {
+                    // Add the completed range
+                    if (start == prev) {
+                        result.append(start);
+                    } else {
+                        result.append(start).append("-").append(prev);
+                    }
+
+                    // Start a new range
+                    result.append(";");
+                    start = current;
+                }
+
+                prev = current;
+            }
+
+            // Add the last range
+            if (start == prev) {
+                result.append(start);
+            } else {
+                result.append(start).append("-").append(prev);
+            }
+        }
+
+        return result.toString();
     }
 
     /**
