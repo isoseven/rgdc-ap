@@ -38,12 +38,15 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.logging.Logger;
 import java.util.logging.Level;
 import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Controller for the main.fxml scene of the application.
@@ -767,6 +770,9 @@ public class ControllerMain extends Controller {
         for (int i = 1; i < ruleset.size(); i++) {
             RulesetItem item = ruleset.get(i);
             String procedureCode = item.getProcedureCode();
+            Set<String> ruleCodes = Arrays.stream(procedureCode.split("[;\\s]+"))
+                    .filter(s -> !s.isEmpty())
+                    .collect(Collectors.toSet());
             String priority = item.getPriority();
             String diagnosis = item.getDiagnosis();
 
@@ -788,8 +794,8 @@ public class ControllerMain extends Controller {
             for (int j = 1; j < procedures.size(); j++) { // Skip the header item (index 0)
                 TreatmentPlanProcedure procedure = procedures.get(j);
 
-                // Check if procedure code matches
-                if (procedure.getProcedureCode().equals(procedureCode)) {
+                // Check if procedure code matches any of the rule codes
+                if (ruleCodes.contains(procedure.getProcedureCode())) {
                     // If the rule has teeth specified, check if the procedure's tooth matches any of them
                     if (!ruleTeeth.isEmpty()) {
                         String procedureTooth = procedure.getToothNumber();

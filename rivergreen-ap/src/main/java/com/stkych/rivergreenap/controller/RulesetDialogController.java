@@ -11,6 +11,7 @@ import javafx.stage.Stage;
 
 import java.net.URL;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.ResourceBundle;
 import java.util.stream.Collectors;
@@ -35,6 +36,9 @@ public class RulesetDialogController implements Initializable {
 
     @FXML
     private TextField codesTextField;
+
+    @FXML
+    private TextField descriptionTextField;
 
     private String selectedPriority;
     private String selectedDiagnosis;
@@ -90,18 +94,16 @@ public class RulesetDialogController implements Initializable {
         // Add listener to codes text field
         codesTextField.textProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue != null && !newValue.isEmpty()) {
-                // Add 'D' prefix if not present for description lookup
                 String code = newValue;
                 if (!code.startsWith("D")) {
                     code = "D" + code;
                 }
 
-                // Update description based on the code
                 try {
                     String description = RiverGreenDB.getProcedureCodeDescription(code);
-                    setDescription("Description: " + description);
+                    setDescription(description);
                 } catch (SQLException e) {
-                    setDescription("Description not available");
+                    setDescription("");
                 }
             }
         });
@@ -165,14 +167,12 @@ public class RulesetDialogController implements Initializable {
      * @return The procedure code as a string
      */
     public String getProcedureCode() {
-        // Get the code from the codes text field
         if (codesTextField != null && !codesTextField.getText().isEmpty()) {
-            String code = codesTextField.getText();
-            // Add 'D' prefix if not present
-            if (!code.startsWith("D")) {
-                code = "D" + code;
-            }
-            return code;
+            String[] codes = codesTextField.getText().split("[;,\\s]+");
+            return Arrays.stream(codes)
+                    .filter(s -> !s.isEmpty())
+                    .map(code -> code.startsWith("D") ? code : "D" + code)
+                    .collect(Collectors.joining(";"));
         }
         return "";
     }
@@ -222,7 +222,12 @@ public class RulesetDialogController implements Initializable {
      */
     public String getSelectedTeethAsString() {
         if (teethTextField != null && !teethTextField.getText().isEmpty()) {
-            return teethTextField.getText();
+            String text = teethTextField.getText();
+            int idx = text.indexOf("(");
+            if (idx != -1) {
+                text = text.substring(0, idx).trim();
+            }
+            return text;
         }
         return "";
     }
@@ -233,6 +238,9 @@ public class RulesetDialogController implements Initializable {
      * @return The procedure description
      */
     public String getDescription() {
+        if (descriptionTextField != null) {
+            return descriptionTextField.getText();
+        }
         return procedureDescription;
     }
 
@@ -243,6 +251,9 @@ public class RulesetDialogController implements Initializable {
      */
     public void setDescription(String description) {
         this.procedureDescription = description;
+        if (descriptionTextField != null) {
+            descriptionTextField.setText(description != null ? description : "");
+        }
     }
 
     /**
@@ -260,10 +271,13 @@ public class RulesetDialogController implements Initializable {
         if (teethTextField != null) {
             List<Integer> teeth = TeethNotationUtil.expandTeeth(teethString);
             if (!teeth.isEmpty()) {
-                String display = teeth.stream()
-                        .map(String::valueOf)
-                        .collect(Collectors.joining(","));
-                teethTextField.setText(display);
+                String comma = teeth.stream().map(String::valueOf).collect(Collectors.joining(","));
+                String range = teethString.replace(";", ",");
+                if (!range.equals(comma)) {
+                    teethTextField.setText(comma + " (" + range + ")");
+                } else {
+                    teethTextField.setText(comma);
+                }
             } else {
                 teethTextField.setText(teethString.replace(";", ","));
             }
@@ -281,14 +295,13 @@ public class RulesetDialogController implements Initializable {
             return;
         }
 
-        // Remove 'D' prefix if present
-        if (procedureCode.startsWith("D")) {
-            procedureCode = procedureCode.substring(1);
-        }
-
-        // Update the codes text field
+        String[] codes = procedureCode.split("[;,\\s]+");
+        String sanitized = Arrays.stream(codes)
+                .filter(s -> !s.isEmpty())
+                .map(code -> code.startsWith("D") ? code.substring(1) : code)
+                .collect(Collectors.joining(","));
         if (codesTextField != null) {
-            codesTextField.setText(procedureCode);
+            codesTextField.setText(sanitized);
         }
     }
 

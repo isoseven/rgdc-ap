@@ -21,6 +21,7 @@ import java.io.*;
 import java.net.URL;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.stream.Collectors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -667,13 +668,13 @@ public class ControllerRuleset implements Initializable {
 
         if (!file.exists()) {
             // Add a header item
-            items.add(new RulesetItem("Header", "Header", "Description", "Teeth"));
+            items.add(new RulesetItem("Priority", "Codes", "Description", "Teeth", "Diagnosis"));
             return items;
         }
 
         try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
             // Add a header item
-            items.add(new RulesetItem("Header", "Header", "Description", "Teeth"));
+            items.add(new RulesetItem("Priority", "Codes", "Description", "Teeth", "Diagnosis"));
 
             String line;
             while ((line = reader.readLine()) != null) {
@@ -682,53 +683,44 @@ public class ControllerRuleset implements Initializable {
                     continue;
                 }
 
-                // Split by comma
-                String[] parts = line.split(",");
+                // Split by commas that are not inside quotes
+                String[] parts = line.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)", -1);
 
-                if (parts.length >= 2) {
-                    // New format: priority,diagnosis,teeth,codes
+                if (parts.length >= 1) {
                     String priority = parts[0].trim();
-                    String diagnosis = "";
-                    String teethNumbers = "";
-                    String procedureCode = "";
+                    String diagnosis = parts.length > 1 ? parts[1].trim() : "";
+                    String teethNumbers = parts.length > 2 ? parts[2].trim() : "";
+                    String procedureCodesPart = parts.length > 3 ? parts[3].trim() : "";
+                    String description = parts.length > 4 ? parts[4].trim() : "";
 
-                    // Get diagnosis if present
-                    if (parts.length > 1 && !parts[1].trim().isEmpty()) {
-                        diagnosis = parts[1].trim();
-                    }
-
-                    // Get teeth numbers if present
-                    if (parts.length > 2 && !parts[2].trim().isEmpty()) {
-                        teethNumbers = parts[2].trim();
-                    }
-
-                    // Get procedure code if present
-                    if (parts.length > 3 && !parts[3].trim().isEmpty()) {
-                        // Add 'D' prefix if not present
-                        procedureCode = parts[3].trim();
-                        if (!procedureCode.startsWith("D")) {
-                            procedureCode = "D" + procedureCode;
-                        }
-                    }
-
-                    // Handle old format files (priority,procedureCode,teethNumbers,diagnosis)
-                    // Check if we have a valid procedure code in the second position
-                    if (diagnosis.startsWith("D") && (procedureCode.isEmpty() || !procedureCode.startsWith("D"))) {
-                        // This is likely the old format
-                        procedureCode = diagnosis;
+                    // Handle old format files (priority,procedureCode,teethNumbers,diagnosis[,description])
+                    if (diagnosis.startsWith("D") && (procedureCodesPart.isEmpty() || !procedureCodesPart.startsWith("D"))) {
+                        procedureCodesPart = diagnosis;
                         diagnosis = parts.length > 3 ? parts[3].trim() : "";
                         teethNumbers = parts.length > 2 ? parts[2].trim() : "";
+                        description = parts.length > 4 ? parts[4].trim() : "";
                     }
 
-                    // Always fetch description from the database
-                    String description = "";
-                    try {
-                        if (!procedureCode.isEmpty()) {
-                            description = RiverGreenDB.getProcedureCodeDescription(procedureCode);
+                    // Normalize procedure codes
+                    String procedureCode = "";
+                    if (!procedureCodesPart.isEmpty()) {
+                        procedureCode = Arrays.stream(procedureCodesPart.split("[;\\s]+"))
+                                .filter(s -> !s.isEmpty())
+                                .map(code -> code.startsWith("D") ? code : "D" + code)
+                                .collect(Collectors.joining(";"));
+                    }
+
+                    // Remove surrounding quotes from description and unescape quotes
+                    if (description.startsWith("\"") && description.endsWith("\"")) {
+                        description = description.substring(1, description.length() - 1).replace("\"\"", "\"");
+                    }
+
+                    if (description.isEmpty() && !procedureCode.isEmpty()) {
+                        try {
+                            description = RiverGreenDB.getProcedureCodeDescription(procedureCode.split(";")[0]);
+                        } catch (SQLException e) {
+                            LOGGER.log(Level.SEVERE, "Unexpected error", e);
                         }
-                    } catch (SQLException e) {
-                        // If there's an error, use an empty description
-                        LOGGER.log(Level.SEVERE, "Unexpected error", e);
                     }
 
                     RulesetItem item = new RulesetItem(priority, procedureCode, description, teethNumbers);
@@ -790,14 +782,22 @@ public class ControllerRuleset implements Initializable {
                 }
                 line.append(",");
 
-                // Add procedure code (without 'D' prefix)
+                // Add procedure codes (without 'D' prefix)
                 String procedureCode = item.getProcedureCode();
                 if (procedureCode != null && !procedureCode.isEmpty()) {
-                    // Remove 'D' prefix if present
-                    if (procedureCode.startsWith("D")) {
-                        procedureCode = procedureCode.substring(1);
-                    }
-                    line.append(procedureCode);
+                    String formattedCodes = Arrays.stream(procedureCode.split("[;,\\s]+"))
+                            .filter(s -> !s.isEmpty())
+                            .map(code -> code.startsWith("D") ? code.substring(1) : code)
+                            .collect(Collectors.joining(";"));
+                    line.append(formattedCodes);
+                }
+                line.append(",");
+
+                // Add optional description, quoted to preserve commas
+                String description = item.getDescription();
+                if (description != null && !description.isEmpty()) {
+                    String escaped = description.replace("\"", "\"\"");
+                    line.append('"').append(escaped).append('"');
                 }
 
                 writer.write(line.toString());
@@ -824,7 +824,7 @@ public class ControllerRuleset implements Initializable {
 
         // Clear the items and add the header and sorted items
         rulesetItems.clear();
-        rulesetItems.add(new RulesetItem("Header", "Header", "Description", "Teeth"));
+        rulesetItems.add(new RulesetItem("Priority", "Codes", "Description", "Teeth", "Diagnosis"));
         rulesetItems.addAll(itemsWithoutHeader);
     }
 

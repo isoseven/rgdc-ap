@@ -8,8 +8,10 @@ import javafx.scene.control.ListCell;
 import javafx.scene.layout.GridPane;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 /**
  * Custom ListCell implementation for displaying RulesetItem objects
@@ -64,16 +66,25 @@ public class RulesetItemListCell extends ListCell<RulesetItem> {
         } else {
             // Set the text of each label to the corresponding property of the item
             priorityLabel.setText(item.getPriority());
-            procedureCodeLabel.setText(item.getProcedureCode());
 
-            // Use the teeth numbers property and convert to shorthand if possible
+            // Display teeth numbers without shorthand.
+            // Convert ranges (e.g. "1-3;5") to their comma form and append
+            // the original range representation in parentheses when applicable.
             String teethNumbers = item.getTeethNumbers();
-            String teethDisplay = TeethNotationUtil.toShorthand(teethNumbers).replace(";", ",");
+            List<Integer> expanded = TeethNotationUtil.expandTeeth(teethNumbers);
+            String commaForm = expanded.isEmpty()
+                    ? teethNumbers.replace(";", ",")
+                    : expanded.stream().map(String::valueOf).collect(Collectors.joining(","));
+            String teethDisplay = commaForm;
+            if (!expanded.isEmpty() && !teethNumbers.replace(";", ",").equals(commaForm)) {
+                teethDisplay = commaForm + " (" + teethNumbers.replace(";", ",") + ")";
+            }
             teethLabel.setText(teethDisplay);
 
-            // Set the diagnosis and description
+            // Display procedure code and description
+            procedureCodeLabel.setText(item.getProcedureCode().replace(";", ","));
             String description = item.getDescription();
-            diagnosisLabel.setText(item.getDiagnosis()); // Use the actual diagnosis
+            diagnosisLabel.setText(item.getDiagnosis());
             descriptionLabel.setText(description);
 
             // Set the graphic to the gridPane
