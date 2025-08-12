@@ -8,11 +8,11 @@ public class TeethNotationUtilTest {
     @Test
     public void testToShorthandPremolars() {
         // Test with all premolars
-        String allPremolars = "3-4-13-14-20-21-28-29";
+        String allPremolars = "4-5-12-13-20-21-28-29";
         assertEquals("Premolar", TeethNotationUtil.toShorthand(allPremolars));
 
         // Test with a subset of premolars
-        String somePremolars = "3-4-13-14";
+        String somePremolars = "4-5-12-13";
         assertEquals("Upper Premolar", TeethNotationUtil.toShorthand(somePremolars));
 
         // Test with lower premolars

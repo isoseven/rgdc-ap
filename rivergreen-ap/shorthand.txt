@@ -1,7 +1,7 @@
 "TYPE" sets
 "Wisdom" = 1 + 16 + 17 + 32
 "Molar" = 2 + 3 + 14 + 15 + 18 + 19 + 30 + 31
-"Premolar" = 3 + 4 + 13 + 14 + 20 + 21 + 28 + 29
+"Premolar" = 4 + 5 + 12 + 13 + 20 + 21 + 28 + 29
 "Canine" = 6 + 11 + 22 + 27
 "Incisor" = 7 + 8 + 9 + 10 + 23 + 24 + 25 + 26
 "Upper" = 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 + 11 + 12 + 13 + 14 + 15 + 16
@@ -10,7 +10,7 @@
 "Lower Wisdom" = 17 + 32
 "Upper Molar" = 2 + 3 + 14 + 15
 "Lower Molar" = 18 + 19 + 30 + 31
-"Upper Premolar" = 3 + 4 + 13 + 14
+"Upper Premolar" = 4 + 5 + 12 + 13
 "Lower Premolar" = 20 + 21 + 28 + 29
 "Upper Canine" = 6 + 11
 "Lower Canine" = 22 + 27

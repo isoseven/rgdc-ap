@@ -11,7 +11,9 @@ public class TeethNotationUtil {
     // Type sets - using exact names from shorthand.txt
     private static final Set<Integer> WISDOM = new HashSet<>(Arrays.asList(1, 16, 17, 32));
     private static final Set<Integer> MOLAR = new HashSet<>(Arrays.asList(2, 3, 14, 15, 18, 19, 30, 31));
-    private static final Set<Integer> PREMOLAR = new HashSet<>(Arrays.asList(3, 4, 13, 14, 20, 21, 28, 29));
+    // Premolars were previously defined incorrectly and overlapped with molars.
+    // Correct numbering: 4,5,12,13,20,21,28,29
+    private static final Set<Integer> PREMOLAR = new HashSet<>(Arrays.asList(4, 5, 12, 13, 20, 21, 28, 29));
     private static final Set<Integer> CANINE = new HashSet<>(Arrays.asList(6, 11, 22, 27));
     private static final Set<Integer> INCISOR = new HashSet<>(Arrays.asList(7, 8, 9, 10, 23, 24, 25, 26));
 
@@ -20,7 +22,7 @@ public class TeethNotationUtil {
     private static final Set<Integer> LOWER_WISDOM = new HashSet<>(Arrays.asList(17, 32));
     private static final Set<Integer> UPPER_MOLAR = new HashSet<>(Arrays.asList(2, 3, 14, 15));
     private static final Set<Integer> LOWER_MOLAR = new HashSet<>(Arrays.asList(18, 19, 30, 31));
-    private static final Set<Integer> UPPER_PREMOLAR = new HashSet<>(Arrays.asList(3, 4, 13, 14));
+    private static final Set<Integer> UPPER_PREMOLAR = new HashSet<>(Arrays.asList(4, 5, 12, 13));
     private static final Set<Integer> LOWER_PREMOLAR = new HashSet<>(Arrays.asList(20, 21, 28, 29));
     private static final Set<Integer> UPPER_CANINE = new HashSet<>(Arrays.asList(6, 11));
     private static final Set<Integer> LOWER_CANINE = new HashSet<>(Arrays.asList(22, 27));
