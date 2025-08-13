@@ -1,6 +1,7 @@
 package com.stkych.rivergreenap.controller;
 
 import com.stkych.rivergreenap.RiverGreenDB;
+import com.stkych.rivergreenap.util.DentalCodeUtil;
 import com.stkych.rivergreenap.util.TeethNotationUtil;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -11,6 +12,8 @@ import javafx.stage.Stage;
 
 import java.net.URL;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.ResourceBundle;
 import java.util.stream.Collectors;
@@ -35,6 +38,9 @@ public class RulesetDialogController implements Initializable {
 
     @FXML
     private TextField codesTextField;
+
+    @FXML
+    private TextField descriptionTextField;
 
     private String selectedPriority;
     private String selectedDiagnosis;
@@ -89,19 +95,32 @@ public class RulesetDialogController implements Initializable {
 
         // Add listener to codes text field
         codesTextField.textProperty().addListener((observable, oldValue, newValue) -> {
-            if (newValue != null && !newValue.isEmpty()) {
-                // Add 'D' prefix if not present for description lookup
-                String code = newValue;
-                if (!code.startsWith("D")) {
-                    code = "D" + code;
-                }
+            System.out.println("[DEBUG_LOG] Dental codes input changed from: '" + oldValue + "' to: '" + newValue + "'");
 
-                // Update description based on the code
-                try {
-                    String description = RiverGreenDB.getProcedureCodeDescription(code);
-                    setDescription("Description: " + description);
-                } catch (SQLException e) {
-                    setDescription("Description not available");
+            if (newValue != null && !newValue.isEmpty()) {
+                // Get the first code for description lookup
+                String[] codes = newValue.split(",");
+                System.out.println("[DEBUG_LOG] Split input into " + codes.length + " codes: " + String.join(", ", codes));
+
+                if (codes.length > 0) {
+                    String code = codes[0].trim();
+                    System.out.println("[DEBUG_LOG] Using first code for description lookup: " + code);
+
+                    // Add 'D' prefix if not present for description lookup
+                    if (!code.startsWith("D")) {
+                        code = "D" + code;
+                        System.out.println("[DEBUG_LOG] Added 'D' prefix for lookup: " + code);
+                    }
+
+                    // Update description based on the code
+                    try {
+                        String description = RiverGreenDB.getProcedureCodeDescription(code);
+                        System.out.println("[DEBUG_LOG] Found description: " + description);
+                        setDescription("Description: " + description);
+                    } catch (SQLException e) {
+                        System.out.println("[DEBUG_LOG] Error getting description: " + e.getMessage());
+                        setDescription("Description not available");
+                    }
                 }
             }
         });
@@ -159,8 +178,10 @@ public class RulesetDialogController implements Initializable {
         return okButton;
     }
 
+
     /**
      * Gets the procedure codes as a comma-separated string from the codes text field.
+     * Handles ranges like "3000-3999" by expanding them to individual codes.
      *
      * @return The procedure codes as a comma-separated string
      */
@@ -168,21 +189,38 @@ public class RulesetDialogController implements Initializable {
         // Get the codes from the codes text field
         if (codesTextField != null && !codesTextField.getText().isEmpty()) {
             String codesText = codesTextField.getText();
-            // Process comma-separated procedure codes
-            String[] codes = codesText.split(",");
-            StringBuilder formattedCodes = new StringBuilder();
-            for (int i = 0; i < codes.length; i++) {
-                String code = codes[i].trim();
-                // Add 'D' prefix if not present
-                if (!code.startsWith("D")) {
-                    code = "D" + code;
-                }
-                formattedCodes.append(code);
-                if (i < codes.length - 1) {
-                    formattedCodes.append(",");
-                }
-            }
-            return formattedCodes.toString();
+            System.out.println("[DEBUG_LOG] Getting procedure codes from text field: '" + codesText + "'");
+
+            // Expand any ranges in the codes
+            List<String> expandedCodes = DentalCodeUtil.expandDentalCodes(codesText);
+            System.out.println("[DEBUG_LOG] Expanded to " + expandedCodes.size() + " individual codes");
+
+            // Join the expanded codes with commas
+            String result = String.join(",", expandedCodes);
+            System.out.println("[DEBUG_LOG] Formatted procedure codes: '" + result + "'");
+            return result;
+        }
+        System.out.println("[DEBUG_LOG] No procedure codes to format (empty text field)");
+        return "";
+    }
+
+    /**
+     * Gets the procedure codes in a display-friendly format.
+     * This method expands any ranges in the codes and then compresses them back into a compact representation.
+     * Example: "3000-3999" becomes "D3000-D3999" instead of a long list of individual codes.
+     *
+     * @return The procedure codes in a display-friendly format
+     */
+    public String getProcedureCodesForDisplay() {
+        // Get the codes from the codes text field
+        if (codesTextField != null && !codesTextField.getText().isEmpty()) {
+            String codesText = codesTextField.getText();
+
+            // Expand any ranges in the codes
+            List<String> expandedCodes = DentalCodeUtil.expandDentalCodes(codesText);
+
+            // Compress the expanded codes back into a compact representation
+            return DentalCodeUtil.compressDentalCodes(expandedCodes);
         }
         return "";
     }
@@ -257,27 +295,33 @@ public class RulesetDialogController implements Initializable {
     }
 
     /**
-     * Gets the procedure description.
+     * Gets the procedure description from the description text field.
      *
      * @return The procedure description
      */
     public String getDescription() {
-        return procedureDescription;
+        if (descriptionTextField != null && !descriptionTextField.getText().isEmpty()) {
+            return descriptionTextField.getText();
+        }
+        return procedureDescription != null ? procedureDescription : "";
     }
 
     /**
-     * Sets the description text.
+     * Sets the description text in the description text field.
      *
      * @param description The description text
      */
     public void setDescription(String description) {
         this.procedureDescription = description;
+        if (descriptionTextField != null) {
+            descriptionTextField.setText(description);
+        }
     }
 
     /**
      * Sets the selected teeth from a string representation.
      * The string may contain ranges using hyphens and semicolons as delimiters, e.g.,
-     * {@code "1-3;5;6-8"}. Ranges are expanded and displayed as a comma-separated list.
+     * {@code "1-3;5;6-8"}. Ranges are displayed as they are.
      *
      * @param teethString The string representation of selected teeth
      */
@@ -287,15 +331,8 @@ public class RulesetDialogController implements Initializable {
         }
 
         if (teethTextField != null) {
-            List<Integer> teeth = TeethNotationUtil.expandTeeth(teethString);
-            if (!teeth.isEmpty()) {
-                String display = teeth.stream()
-                        .map(String::valueOf)
-                        .collect(Collectors.joining(","));
-                teethTextField.setText(display);
-            } else {
-                teethTextField.setText(teethString.replace(";", ","));
-            }
+            // Display the teeth ranges as they are
+            teethTextField.setText(teethString);
         }
     }
 
@@ -306,18 +343,26 @@ public class RulesetDialogController implements Initializable {
      * @param procedureCodes The procedure codes to set as a comma-separated list
      */
     public void setProcedureCodes(String procedureCodes) {
+        System.out.println("[DEBUG_LOG] Setting procedure codes: '" + procedureCodes + "'");
+
         if (procedureCodes == null || procedureCodes.isEmpty()) {
+            System.out.println("[DEBUG_LOG] Procedure codes are null or empty, not setting");
             return;
         }
 
         // Process comma-separated procedure codes
         String[] codes = procedureCodes.split(",");
+        System.out.println("[DEBUG_LOG] Split into " + codes.length + " codes for formatting");
+
         StringBuilder formattedCodes = new StringBuilder();
         for (int i = 0; i < codes.length; i++) {
             String code = codes[i].trim();
+            System.out.println("[DEBUG_LOG] Processing code #" + (i+1) + ": '" + code + "'");
+
             // Remove 'D' prefix if present
             if (code.startsWith("D")) {
                 code = code.substring(1);
+                System.out.println("[DEBUG_LOG] Removed 'D' prefix: '" + code + "'");
             }
             formattedCodes.append(code);
             if (i < codes.length - 1) {
@@ -325,9 +370,15 @@ public class RulesetDialogController implements Initializable {
             }
         }
 
+        String result = formattedCodes.toString();
+        System.out.println("[DEBUG_LOG] Formatted procedure codes for text field: '" + result + "'");
+
         // Update the codes text field
         if (codesTextField != null) {
-            codesTextField.setText(formattedCodes.toString());
+            codesTextField.setText(result);
+            System.out.println("[DEBUG_LOG] Updated codes text field");
+        } else {
+            System.out.println("[DEBUG_LOG] Codes text field is null, cannot update");
         }
     }
 
@@ -358,7 +409,7 @@ public class RulesetDialogController implements Initializable {
         // Set up a dummy value property that delegates to the new implementation
         dummyComboBox.valueProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue != null && !newValue.isEmpty()) {
-                setProcedureCode(newValue);
+                setProcedureCodes(newValue);
             }
         });
 

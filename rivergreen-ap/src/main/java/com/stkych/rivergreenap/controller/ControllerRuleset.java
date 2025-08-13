@@ -193,8 +193,17 @@ public class ControllerRuleset implements Initializable {
             controller.getProcedureCodeComboBox().valueProperty().addListener((observable, oldValue, newValue) -> {
                 if (newValue != null && !newValue.isEmpty()) {
                     try {
-                        String description = RiverGreenDB.getProcedureCodeDescription(newValue);
-                        controller.setDescription(description);
+                        // Get the first code for description lookup
+                        String[] codes = newValue.split(",");
+                        if (codes.length > 0) {
+                            String code = codes[0].trim();
+                            // Add 'D' prefix if not present for description lookup
+                            if (!code.startsWith("D")) {
+                                code = "D" + code;
+                            }
+                            String description = RiverGreenDB.getProcedureCodeDescription(code);
+                            controller.setDescription(description);
+                        }
                     } catch (SQLException e) {
                         controller.setDescription("Description not available");
                         LOGGER.log(Level.SEVERE, "Unexpected error", e);
@@ -214,19 +223,25 @@ public class ControllerRuleset implements Initializable {
                     if (priority == null || priority.isEmpty()) {
                         priority = controller.getPriorityComboBox().getEditor().getText();
                     }
-                    String procedureCode = controller.getProcedureCodeComboBox().getValue();
-                    if (procedureCode == null) {
-                        procedureCode = controller.getProcedureCodeComboBox().getEditor().getText();
-                    }
+                    String procedureCode = controller.getProcedureCodes();
+                    System.out.println("[DEBUG_LOG] New ruleset item - retrieved procedure codes: '" + procedureCode + "'");
+
                     String description = controller.getDescription();
+                    System.out.println("[DEBUG_LOG] New ruleset item - description: '" + description + "'");
+
                     String teethNumbers = controller.getSelectedTeethAsString();
+                    System.out.println("[DEBUG_LOG] New ruleset item - teeth numbers: '" + teethNumbers + "'");
+
                     String diagnosis = controller.getDiagnosis();
+                    System.out.println("[DEBUG_LOG] New ruleset item - diagnosis: '" + diagnosis + "'");
 
                     // Validate inputs
                     if (!validateRulesetItem(procedureCode, teethNumbers, priority, diagnosis)) {
+                        System.out.println("[DEBUG_LOG] New ruleset item validation failed");
                         return null;
                     }
 
+                    System.out.println("[DEBUG_LOG] Creating new RulesetItem with procedure codes: '" + procedureCode + "'");
                     RulesetItem item = new RulesetItem(priority, procedureCode, description, teethNumbers);
                     if (diagnosis != null && !diagnosis.isEmpty()) {
                         item.setDiagnosis(diagnosis);
@@ -302,7 +317,11 @@ public class ControllerRuleset implements Initializable {
 
             // Pre-populate the fields with the selected item's data
             controller.getPriorityComboBox().setValue(selectedItem.getPriority());
-            controller.getProcedureCodeComboBox().setValue(selectedItem.getProcedureCodes());
+
+            String existingCodes = selectedItem.getProcedureCodes();
+            System.out.println("[DEBUG_LOG] Edit ruleset item - existing procedure codes: '" + existingCodes + "'");
+            controller.getProcedureCodeComboBox().setValue(existingCodes);
+
             controller.setDescription(selectedItem.getDescription());
             controller.setSelectedTeethFromString(selectedItem.getTeethNumbers());
 
@@ -318,8 +337,17 @@ public class ControllerRuleset implements Initializable {
             controller.getProcedureCodeComboBox().valueProperty().addListener((observable, oldValue, newValue) -> {
                 if (newValue != null && !newValue.isEmpty()) {
                     try {
-                        String description = RiverGreenDB.getProcedureCodeDescription(newValue);
-                        controller.setDescription(description);
+                        // Get the first code for description lookup
+                        String[] codes = newValue.split(",");
+                        if (codes.length > 0) {
+                            String code = codes[0].trim();
+                            // Add 'D' prefix if not present for description lookup
+                            if (!code.startsWith("D")) {
+                                code = "D" + code;
+                            }
+                            String description = RiverGreenDB.getProcedureCodeDescription(code);
+                            controller.setDescription(description);
+                        }
                     } catch (SQLException e) {
                         controller.setDescription("Description not available");
                         LOGGER.log(Level.SEVERE, "Unexpected error", e);
@@ -339,20 +367,26 @@ public class ControllerRuleset implements Initializable {
                     if (priority == null || priority.isEmpty()) {
                         priority = controller.getPriorityComboBox().getEditor().getText();
                     }
-                    String procedureCode = controller.getProcedureCodeComboBox().getValue();
-                    if (procedureCode == null) {
-                        procedureCode = controller.getProcedureCodeComboBox().getEditor().getText();
-                    }
+                    String procedureCode = controller.getProcedureCodes();
+                    System.out.println("[DEBUG_LOG] Edit ruleset item - updated procedure codes: '" + procedureCode + "'");
+
                     String description = controller.getDescription();
+                    System.out.println("[DEBUG_LOG] Edit ruleset item - updated description: '" + description + "'");
+
                     String teethNumbers = controller.getSelectedTeethAsString();
+                    System.out.println("[DEBUG_LOG] Edit ruleset item - updated teeth numbers: '" + teethNumbers + "'");
+
                     String diagnosis = controller.getDiagnosis();
+                    System.out.println("[DEBUG_LOG] Edit ruleset item - updated diagnosis: '" + diagnosis + "'");
 
                     // Validate inputs
                     if (!validateRulesetItem(procedureCode, teethNumbers, priority, diagnosis)) {
+                        System.out.println("[DEBUG_LOG] Edit ruleset item validation failed");
                         return null;
                     }
 
                     // Create a new RulesetItem with the updated values
+                    System.out.println("[DEBUG_LOG] Creating updated RulesetItem with procedure codes: '" + procedureCode + "'");
                     RulesetItem updatedItem = new RulesetItem(priority, procedureCode, description, teethNumbers);
 
                     // Set the diagnosis from the controller if it's not null or empty
@@ -682,36 +716,71 @@ public class ControllerRuleset implements Initializable {
                     continue;
                 }
 
-                // Split by comma
-                String[] parts = line.split(",");
+                // Handle quoted fields (for description)
+                List<String> parts = new ArrayList<>();
+                StringBuilder sb = new StringBuilder();
+                boolean inQuotes = false;
 
-                if (parts.length >= 2) {
-                    // New format: priority,diagnosis,teeth,codes
-                    String priority = parts[0].trim();
+                for (int i = 0; i < line.length(); i++) {
+                    char c = line.charAt(i);
+
+                    if (c == '\"') {
+                        // If we see a quote, toggle the inQuotes flag
+                        inQuotes = !inQuotes;
+                        // If it's a double quote, add a single quote to the field
+                        if (i + 1 < line.length() && line.charAt(i + 1) == '\"') {
+                            sb.append('\"');
+                            i++; // Skip the next quote
+                        }
+                    } else if (c == ',' && !inQuotes) {
+                        // If we see a comma and we're not in quotes, end the current field
+                        parts.add(sb.toString());
+                        sb.setLength(0);
+                    } else {
+                        // Otherwise, add the character to the current field
+                        sb.append(c);
+                    }
+                }
+
+                // Add the last field
+                parts.add(sb.toString());
+
+                if (parts.size() >= 2) {
+                    // New format: priority,diagnosis,teeth,codes,description
+                    String priority = parts.get(0).trim();
                     String diagnosis = "";
                     String teethNumbers = "";
                     String procedureCode = "";
+                    String description = "";
 
                     // Get diagnosis if present
-                    if (parts.length > 1 && !parts[1].trim().isEmpty()) {
-                        diagnosis = parts[1].trim();
+                    if (parts.size() > 1 && !parts.get(1).trim().isEmpty()) {
+                        diagnosis = parts.get(1).trim();
                     }
 
                     // Get teeth numbers if present
-                    if (parts.length > 2 && !parts[2].trim().isEmpty()) {
-                        teethNumbers = parts[2].trim();
+                    if (parts.size() > 2 && !parts.get(2).trim().isEmpty()) {
+                        teethNumbers = parts.get(2).trim();
                     }
 
                     // Get procedure codes if present
-                    if (parts.length > 3 && !parts[3].trim().isEmpty()) {
+                    if (parts.size() > 3 && !parts.get(3).trim().isEmpty()) {
+                        String rawCodes = parts.get(3).trim();
+                        System.out.println("[DEBUG_LOG] Loading procedure codes from CSV: '" + rawCodes + "'");
+
                         // Process comma-separated procedure codes
-                        String[] codes = parts[3].trim().split(",");
+                        String[] codes = rawCodes.split(",");
+                        System.out.println("[DEBUG_LOG] Split into " + codes.length + " codes for formatting");
+
                         StringBuilder formattedCodes = new StringBuilder();
                         for (int i = 0; i < codes.length; i++) {
                             String code = codes[i].trim();
+                            System.out.println("[DEBUG_LOG] Processing code #" + (i+1) + ": '" + code + "'");
+
                             // Add 'D' prefix if not present
                             if (!code.startsWith("D")) {
                                 code = "D" + code;
+                                System.out.println("[DEBUG_LOG] Added 'D' prefix: '" + code + "'");
                             }
                             formattedCodes.append(code);
                             if (i < codes.length - 1) {
@@ -719,6 +788,12 @@ public class ControllerRuleset implements Initializable {
                             }
                         }
                         procedureCode = formattedCodes.toString();
+                        System.out.println("[DEBUG_LOG] Formatted procedure codes: '" + procedureCode + "'");
+                    }
+
+                    // Get description if present
+                    if (parts.size() > 4 && !parts.get(4).trim().isEmpty()) {
+                        description = parts.get(4).trim();
                     }
 
                     // Handle old format files (priority,procedureCode,teethNumbers,diagnosis)
@@ -726,19 +801,20 @@ public class ControllerRuleset implements Initializable {
                     if (diagnosis.startsWith("D") && (procedureCode.isEmpty() || !procedureCode.startsWith("D"))) {
                         // This is likely the old format
                         procedureCode = diagnosis;
-                        diagnosis = parts.length > 3 ? parts[3].trim() : "";
-                        teethNumbers = parts.length > 2 ? parts[2].trim() : "";
+                        diagnosis = parts.size() > 3 ? parts.get(3).trim() : "";
+                        teethNumbers = parts.size() > 2 ? parts.get(2).trim() : "";
                     }
 
-                    // Always fetch description from the database
-                    String description = "";
-                    try {
-                        if (!procedureCode.isEmpty()) {
-                            description = RiverGreenDB.getProcedureCodeDescription(procedureCode);
+                    // If description is empty, fetch from the database
+                    if (description.isEmpty()) {
+                        try {
+                            if (!procedureCode.isEmpty()) {
+                                description = RiverGreenDB.getProcedureCodeDescription(procedureCode);
+                            }
+                        } catch (SQLException e) {
+                            // If there's an error, use an empty description
+                            LOGGER.log(Level.SEVERE, "Unexpected error", e);
                         }
-                    } catch (SQLException e) {
-                        // If there's an error, use an empty description
-                        LOGGER.log(Level.SEVERE, "Unexpected error", e);
                     }
 
                     RulesetItem item = new RulesetItem(priority, procedureCode, description, teethNumbers);
@@ -779,7 +855,7 @@ public class ControllerRuleset implements Initializable {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
             for (int i = 1; i < rulesetItems.size(); i++) {
                 RulesetItem item = rulesetItems.get(i);
-                // Write priority, diagnosis, teeth, codes in the new format
+                // Write priority, diagnosis, teeth, codes, description in the new format
                 // Use comma as delimiter
                 StringBuilder line = new StringBuilder();
                 line.append(item.getPriority()).append(",");
@@ -802,22 +878,42 @@ public class ControllerRuleset implements Initializable {
 
                 // Add procedure codes (without 'D' prefix)
                 String procedureCodes = item.getProcedureCodes();
+                System.out.println("[DEBUG_LOG] Saving procedure codes to CSV for item #" + i + ": '" + procedureCodes + "'");
+
                 if (procedureCodes != null && !procedureCodes.isEmpty()) {
                     // Process comma-separated procedure codes
                     String[] codes = procedureCodes.split(",");
+                    System.out.println("[DEBUG_LOG] Split into " + codes.length + " codes for formatting");
+
                     StringBuilder formattedCodes = new StringBuilder();
                     for (int j = 0; j < codes.length; j++) {
                         String code = codes[j].trim();
+                        System.out.println("[DEBUG_LOG] Processing code #" + (j+1) + ": '" + code + "'");
+
                         // Remove 'D' prefix if present
                         if (code.startsWith("D")) {
                             code = code.substring(1);
+                            System.out.println("[DEBUG_LOG] Removed 'D' prefix: '" + code + "'");
                         }
                         formattedCodes.append(code);
                         if (j < codes.length - 1) {
                             formattedCodes.append(",");
                         }
                     }
-                    line.append(formattedCodes);
+
+                    String result = formattedCodes.toString();
+                    System.out.println("[DEBUG_LOG] Formatted procedure codes for CSV: '" + result + "'");
+                    line.append(result);
+                }
+                line.append(",");
+
+                // Add description if present (in quotes to handle commas in description)
+                String description = item.getDescription();
+                if (description != null && !description.isEmpty()) {
+                    // Escape quotes in the description
+                    description = description.replace("\"", "\"\"");
+                    // Wrap the description in quotes
+                    line.append("\"").append(description).append("\"");
                 }
 
                 writer.write(line.toString());

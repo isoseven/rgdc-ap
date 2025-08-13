@@ -8,6 +8,7 @@ import com.stkych.rivergreenap.model.TreatmentPlanProcedure;
 import com.stkych.rivergreenap.util.FileUtils;
 import com.stkych.rivergreenap.util.ExecutionLogger;
 import com.stkych.rivergreenap.util.TeethNotationUtil;
+import com.stkych.rivergreenap.util.DentalCodeUtil;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -784,11 +785,10 @@ public class ControllerMain extends Controller {
             // Parse procedure codes into a list
             List<String> ruleProcedureCodes = new ArrayList<>();
             if (procedureCodes != null && !procedureCodes.isEmpty()) {
-                // Split by comma and add each code to the list
-                String[] codes = procedureCodes.split(",");
-                for (String code : codes) {
-                    ruleProcedureCodes.add(code.trim());
-                }
+                // Parse the procedure codes using the new method
+                ruleProcedureCodes = parseProcedureCodes(procedureCodes);
+                System.out.println("[DEBUG_LOG] Ruleset item #" + i + " has procedure codes: " + procedureCodes);
+                System.out.println("[DEBUG_LOG] Parsed into list: " + ruleProcedureCodes);
             }
 
             // Counter for tracking how many items this rule is applied to
@@ -799,32 +799,47 @@ public class ControllerMain extends Controller {
                 TreatmentPlanProcedure procedure = procedures.get(j);
 
                 // Check if procedure code matches any of the codes in the rule
-                if (ruleProcedureCodes.contains(procedure.getProcedureCode())) {
+                String procedureCode = procedure.getProcedureCode();
+                System.out.println("[DEBUG_LOG] Checking procedure #" + j + " with code: " + procedureCode);
+
+                if (ruleProcedureCodes.contains(procedureCode)) {
+                    System.out.println("[DEBUG_LOG] Found matching code: " + procedureCode + " in ruleset item #" + i);
+
                     // If the rule has teeth specified, check if the procedure's tooth matches any of them
                     if (!ruleTeeth.isEmpty()) {
                         String procedureTooth = procedure.getToothNumber();
+                        System.out.println("[DEBUG_LOG] Procedure has tooth: " + procedureTooth + ", checking against ruleset teeth: " + ruleTeeth);
+
                         if (procedureTooth != null && !procedureTooth.isEmpty() && ruleTeeth.contains(procedureTooth)) {
                             // Update priority and diagnosis if both procedure code and tooth match
+                            System.out.println("[DEBUG_LOG] Found matching tooth: " + procedureTooth + ", applying priority: " + priority);
                             procedure.setPriority(priority);
 
                             // Use the diagnosis property
                             if (diagnosis != null && !diagnosis.isEmpty()) {
+                                System.out.println("[DEBUG_LOG] Applying diagnosis: " + diagnosis);
                                 procedure.setDiagnosis(diagnosis);
                             }
 
                             appliedCount++;
+                        } else {
+                            System.out.println("[DEBUG_LOG] No matching tooth found, skipping this procedure");
                         }
                     } else {
                         // If the rule doesn't specify teeth, update all procedures with matching code
+                        System.out.println("[DEBUG_LOG] No teeth specified in ruleset, applying priority: " + priority);
                         procedure.setPriority(priority);
 
                         // Also update diagnosis even if no teeth are specified
                         if (diagnosis != null && !diagnosis.isEmpty()) {
+                            System.out.println("[DEBUG_LOG] Applying diagnosis: " + diagnosis);
                             procedure.setDiagnosis(diagnosis);
                         }
 
                         appliedCount++;
                     }
+                } else {
+                    System.out.println("[DEBUG_LOG] No matching code found for procedure");
                 }
             }
 
@@ -854,6 +869,20 @@ public class ControllerMain extends Controller {
             result.add(String.valueOf(num));
         }
         return result;
+    }
+
+    /**
+     * Parses procedure codes from a string that may contain ranges.
+     * Example: "3000-3999,4000,5000-5010" will return a list containing "D3000", "D3001", ..., "D3999", "D4000", "D5000", ..., "D5010"
+     *
+     * @param procedureCodes The procedure codes string that may contain ranges
+     * @return A list of individual procedure codes
+     */
+    private List<String> parseProcedureCodes(String procedureCodes) {
+        if (procedureCodes == null || procedureCodes.isEmpty()) {
+            return new ArrayList<>();
+        }
+        return DentalCodeUtil.expandDentalCodes(procedureCodes);
     }
 
     /**
