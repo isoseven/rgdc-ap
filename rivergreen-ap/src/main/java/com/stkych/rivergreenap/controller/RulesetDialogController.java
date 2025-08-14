@@ -93,37 +93,7 @@ public class RulesetDialogController implements Initializable {
             }
         });
 
-        // Add listener to codes text field
-        codesTextField.textProperty().addListener((observable, oldValue, newValue) -> {
-            System.out.println("[DEBUG_LOG] Dental codes input changed from: '" + oldValue + "' to: '" + newValue + "'");
-
-            if (newValue != null && !newValue.isEmpty()) {
-                // Get the first code for description lookup
-                String[] codes = newValue.split(",");
-                System.out.println("[DEBUG_LOG] Split input into " + codes.length + " codes: " + String.join(", ", codes));
-
-                if (codes.length > 0) {
-                    String code = codes[0].trim();
-                    System.out.println("[DEBUG_LOG] Using first code for description lookup: " + code);
-
-                    // Add 'D' prefix if not present for description lookup
-                    if (!code.startsWith("D")) {
-                        code = "D" + code;
-                        System.out.println("[DEBUG_LOG] Added 'D' prefix for lookup: " + code);
-                    }
-
-                    // Update description based on the code
-                    try {
-                        String description = RiverGreenDB.getProcedureCodeDescription(code);
-                        System.out.println("[DEBUG_LOG] Found description: " + description);
-                        setDescription("Description: " + description);
-                    } catch (SQLException e) {
-                        System.out.println("[DEBUG_LOG] Error getting description: " + e.getMessage());
-                        setDescription("Description not available");
-                    }
-                }
-            }
-        });
+        // Removed auto-filling listener for codes text field to stop description from auto-filling
     }
 
     /**
@@ -195,8 +165,8 @@ public class RulesetDialogController implements Initializable {
             List<String> expandedCodes = DentalCodeUtil.expandDentalCodes(codesText);
             System.out.println("[DEBUG_LOG] Expanded to " + expandedCodes.size() + " individual codes");
 
-            // Join the expanded codes with commas
-            String result = String.join(",", expandedCodes);
+            // Join the expanded codes with semicolons
+            String result = String.join(",", expandedCodes); // Keep using commas internally for compatibility
             System.out.println("[DEBUG_LOG] Formatted procedure codes: '" + result + "'");
             return result;
         }
@@ -339,6 +309,7 @@ public class RulesetDialogController implements Initializable {
     /**
      * Sets the procedure codes in the codes text field.
      * If the codes start with 'D', they will be removed before setting the text.
+     * Compresses the codes into ranges for display.
      *
      * @param procedureCodes The procedure codes to set as a comma-separated list
      */
@@ -350,32 +321,17 @@ public class RulesetDialogController implements Initializable {
             return;
         }
 
-        // Process comma-separated procedure codes
-        String[] codes = procedureCodes.split(",");
-        System.out.println("[DEBUG_LOG] Split into " + codes.length + " codes for formatting");
+        // First, expand the codes to ensure we have a complete list
+        List<String> expandedCodes = DentalCodeUtil.expandDentalCodes(procedureCodes);
+        System.out.println("[DEBUG_LOG] Expanded to " + expandedCodes.size() + " individual codes");
 
-        StringBuilder formattedCodes = new StringBuilder();
-        for (int i = 0; i < codes.length; i++) {
-            String code = codes[i].trim();
-            System.out.println("[DEBUG_LOG] Processing code #" + (i+1) + ": '" + code + "'");
+        // Then compress them into ranges (e.g., D1000-1999; N2300-2500)
+        String compressedCodes = DentalCodeUtil.compressDentalCodes(expandedCodes);
+        System.out.println("[DEBUG_LOG] Compressed into ranges: '" + compressedCodes + "'");
 
-            // Remove 'D' prefix if present
-            if (code.startsWith("D")) {
-                code = code.substring(1);
-                System.out.println("[DEBUG_LOG] Removed 'D' prefix: '" + code + "'");
-            }
-            formattedCodes.append(code);
-            if (i < codes.length - 1) {
-                formattedCodes.append(",");
-            }
-        }
-
-        String result = formattedCodes.toString();
-        System.out.println("[DEBUG_LOG] Formatted procedure codes for text field: '" + result + "'");
-
-        // Update the codes text field
+        // Update the codes text field directly with letters preserved
         if (codesTextField != null) {
-            codesTextField.setText(result);
+            codesTextField.setText(compressedCodes);
             System.out.println("[DEBUG_LOG] Updated codes text field");
         } else {
             System.out.println("[DEBUG_LOG] Codes text field is null, cannot update");

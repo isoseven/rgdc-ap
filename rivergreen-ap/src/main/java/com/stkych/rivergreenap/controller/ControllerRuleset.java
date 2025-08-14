@@ -189,29 +189,7 @@ public class ControllerRuleset implements Initializable {
             // The procedure codes are already loaded from the database in the controller's initialize method
             controller.getProcedureCodeComboBox().setEditable(true);
 
-            // Add a listener to the procedure code combo box to update the description
-            controller.getProcedureCodeComboBox().valueProperty().addListener((observable, oldValue, newValue) -> {
-                if (newValue != null && !newValue.isEmpty()) {
-                    try {
-                        // Get the first code for description lookup
-                        String[] codes = newValue.split(",");
-                        if (codes.length > 0) {
-                            String code = codes[0].trim();
-                            // Add 'D' prefix if not present for description lookup
-                            if (!code.startsWith("D")) {
-                                code = "D" + code;
-                            }
-                            String description = RiverGreenDB.getProcedureCodeDescription(code);
-                            controller.setDescription(description);
-                        }
-                    } catch (SQLException e) {
-                        controller.setDescription("Description not available");
-                        LOGGER.log(Level.SEVERE, "Unexpected error", e);
-                    }
-                } else {
-                    controller.setDescription("");
-                }
-            });
+            // Removed auto-filling listener to stop description from auto-filling
 
             // Set the content of the dialog
             dialog.getDialogPane().setContent(root);
@@ -333,29 +311,7 @@ public class ControllerRuleset implements Initializable {
             // The procedure codes are already loaded from the database in the controller's initialize method
             controller.getProcedureCodeComboBox().setEditable(true);
 
-            // Add a listener to the procedure code combo box to update the description
-            controller.getProcedureCodeComboBox().valueProperty().addListener((observable, oldValue, newValue) -> {
-                if (newValue != null && !newValue.isEmpty()) {
-                    try {
-                        // Get the first code for description lookup
-                        String[] codes = newValue.split(",");
-                        if (codes.length > 0) {
-                            String code = codes[0].trim();
-                            // Add 'D' prefix if not present for description lookup
-                            if (!code.startsWith("D")) {
-                                code = "D" + code;
-                            }
-                            String description = RiverGreenDB.getProcedureCodeDescription(code);
-                            controller.setDescription(description);
-                        }
-                    } catch (SQLException e) {
-                        controller.setDescription("Description not available");
-                        LOGGER.log(Level.SEVERE, "Unexpected error", e);
-                    }
-                } else {
-                    controller.setDescription("");
-                }
-            });
+            // Removed auto-filling listener to stop description from auto-filling
 
             // Set the content of the dialog
             dialog.getDialogPane().setContent(root);
@@ -569,6 +525,58 @@ public class ControllerRuleset implements Initializable {
     }
 
     /**
+     * Handles the Open CSV Files menu item action.
+     * Opens the file explorer to the CSV files directory.
+     */
+    @FXML
+    private void handleOpenCSVFilesAction() {
+        LOGGER.info("Open CSV Files menu item clicked");
+
+        try {
+            // Get the ruleset directory where CSV files are stored
+            File csvDirectory = FileUtils.getRulesetDirectory();
+            
+            // Check if the directory exists, create it if it doesn't
+            if (!csvDirectory.exists()) {
+                csvDirectory.mkdirs();
+            }
+            
+            // Open the directory in the default file manager
+            if (java.awt.Desktop.isDesktopSupported()) {
+                java.awt.Desktop desktop = java.awt.Desktop.getDesktop();
+                if (desktop.isSupported(java.awt.Desktop.Action.OPEN)) {
+                    desktop.open(csvDirectory);
+                } else {
+                    showCSVDirectoryInfo(csvDirectory);
+                }
+            } else {
+                showCSVDirectoryInfo(csvDirectory);
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Failed to open CSV files directory", e);
+            
+            // Show error alert
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Error");
+            alert.setHeaderText("Failed to Open CSV Files Directory");
+            alert.setContentText("Could not open the CSV files directory. Error: " + e.getMessage());
+            alert.showAndWait();
+        }
+    }
+
+    /**
+     * Shows information about the CSV directory location when desktop operations are not supported.
+     */
+    private void showCSVDirectoryInfo(File csvDirectory) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("CSV Files Directory");
+        alert.setHeaderText("CSV Files Location");
+        alert.setContentText("CSV files are stored in:\n" + csvDirectory.getAbsolutePath() + 
+                           "\n\nPlease navigate to this directory manually to access your CSV files.");
+        alert.showAndWait();
+    }
+
+    /**
      * Handles the Close menu item action.
      * Closes the current window.
      */
@@ -768,8 +776,8 @@ public class ControllerRuleset implements Initializable {
                         String rawCodes = parts.get(3).trim();
                         System.out.println("[DEBUG_LOG] Loading procedure codes from CSV: '" + rawCodes + "'");
 
-                        // Process comma-separated procedure codes
-                        String[] codes = rawCodes.split(",");
+                        // Process semicolon-separated procedure codes
+                        String[] codes = rawCodes.split(";");
                         System.out.println("[DEBUG_LOG] Split into " + codes.length + " codes for formatting");
 
                         StringBuilder formattedCodes = new StringBuilder();
@@ -897,7 +905,7 @@ public class ControllerRuleset implements Initializable {
                         }
                         formattedCodes.append(code);
                         if (j < codes.length - 1) {
-                            formattedCodes.append(",");
+                            formattedCodes.append(";");
                         }
                     }
 

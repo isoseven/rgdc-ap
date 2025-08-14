@@ -25,6 +25,7 @@
             <items>
               <MenuItem mnemonicParsing="false" onAction="#handleSelectPatientAction" text="Select Patient" />
               <MenuItem mnemonicParsing="false" onAction="#handleResetAction" text="Reset" />
+              <MenuItem mnemonicParsing="false" onAction="#handleOpenCSVFilesAction" text="Open CSV Files" />
               <MenuItem mnemonicParsing="false" onAction="#handleCloseAction" text="Close" />
             </items>
           </Menu>

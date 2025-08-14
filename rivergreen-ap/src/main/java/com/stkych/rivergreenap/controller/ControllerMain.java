@@ -525,6 +525,58 @@ public class ControllerMain extends Controller {
     }
 
     /**
+     * Handles the Open CSV Files menu item action.
+     * Opens the file explorer to the CSV files directory.
+     */
+    @FXML
+    private void handleOpenCSVFilesAction() {
+        LOGGER.info("Open CSV Files menu item clicked");
+
+        try {
+            // Get the ruleset directory where CSV files are stored
+            File csvDirectory = FileUtils.getRulesetDirectory();
+            
+            // Check if the directory exists, create it if it doesn't
+            if (!csvDirectory.exists()) {
+                csvDirectory.mkdirs();
+            }
+            
+            // Open the directory in the default file manager
+            if (java.awt.Desktop.isDesktopSupported()) {
+                java.awt.Desktop desktop = java.awt.Desktop.getDesktop();
+                if (desktop.isSupported(java.awt.Desktop.Action.OPEN)) {
+                    desktop.open(csvDirectory);
+                } else {
+                    showCSVDirectoryInfo(csvDirectory);
+                }
+            } else {
+                showCSVDirectoryInfo(csvDirectory);
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Failed to open CSV files directory", e);
+            
+            // Show error alert
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Error");
+            alert.setHeaderText("Failed to Open CSV Files Directory");
+            alert.setContentText("Could not open the CSV files directory. Error: " + e.getMessage());
+            alert.showAndWait();
+        }
+    }
+
+    /**
+     * Shows information about the CSV directory location when desktop operations are not supported.
+     */
+    private void showCSVDirectoryInfo(File csvDirectory) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("CSV Files Directory");
+        alert.setHeaderText("CSV Files Location");
+        alert.setContentText("CSV files are stored in:\n" + csvDirectory.getAbsolutePath() + 
+                           "\n\nPlease navigate to this directory manually to access your CSV files.");
+        alert.showAndWait();
+    }
+
+    /**
      * Handles the Close menu item action.
      * Closes the current window.
      */

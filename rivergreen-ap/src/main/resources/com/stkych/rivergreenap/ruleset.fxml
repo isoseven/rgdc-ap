@@ -17,7 +17,7 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<VBox maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="800.0" prefWidth="1100.0" xmlns="http://javafx.com/javafx/17.0.2" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.stkych.rivergreenap.controller.ControllerRuleset">
+<VBox maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="800.0" prefWidth="1100.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.stkych.rivergreenap.controller.ControllerRuleset">
    <children>
       <MenuBar>
          <menus>
@@ -25,6 +25,7 @@
                <items>
                   <MenuItem mnemonicParsing="false" onAction="#handleSelectPatientAction" text="Select Patient" />
                   <MenuItem mnemonicParsing="false" onAction="#handleResetAction" text="Reset" />
+                  <MenuItem mnemonicParsing="false" onAction="#handleOpenCSVFilesAction" text="Open CSV Files" />
                   <MenuItem mnemonicParsing="false" onAction="#handleCloseAction" text="Close" />
                </items>
             </Menu>
@@ -66,9 +67,9 @@
                   </MenuButton>
                   <Separator prefWidth="200.0" />
                   <Separator prefWidth="200.0" />
-                  <Pane prefHeight="519.0" prefWidth="271.0">
+                  <Pane prefHeight="542.0" prefWidth="271.0">
                      <children>
-                        <Button fx:id="editButton1" alignment="CENTER" layoutX="90.0" layoutY="14.0" mnemonicParsing="false" onAction="#handleEditRulesetButtonAction" prefHeight="25.0" prefWidth="120.0" text="Manage Rulesets" />
+                        <Button fx:id="editButton1" alignment="CENTER" layoutX="76.0" layoutY="14.0" mnemonicParsing="false" onAction="#handleEditRulesetButtonAction" prefHeight="25.0" prefWidth="120.0" text="Manage Rulesets" />
                      </children></Pane>
                   <GridPane>
                      <columnConstraints>

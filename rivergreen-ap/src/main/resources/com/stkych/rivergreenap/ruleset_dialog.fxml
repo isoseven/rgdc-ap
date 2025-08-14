@@ -46,7 +46,7 @@
                         <Insets bottom="5.0" />
                      </VBox.margin>
                   </Label>
-                  <TextField fx:id="codesTextField" promptText="Codes (without D prefix)" />
+                  <TextField fx:id="codesTextField" promptText="Codes (e.g., D1000-1999; N2300-2500)" />
                </children>
                <padding>
                   <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
