@@ -1,6 +1,7 @@
 package com.stkych.rivergreenap.controller.cells;
 
 import com.stkych.rivergreenap.model.RulesetItem;
+import com.stkych.rivergreenap.util.DentalCodeUtil;
 import com.stkych.rivergreenap.util.TeethNotationUtil;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Label;
@@ -64,12 +65,16 @@ public class RulesetItemListCell extends ListCell<RulesetItem> {
         } else {
             // Set the text of each label to the corresponding property of the item
             priorityLabel.setText(item.getPriority());
-            procedureCodeLabel.setText(item.getProcedureCode());
 
-            // Use the teeth numbers property and convert to shorthand if possible
+            // Use the procedure codes property and display in a compact form with ranges
+            String procedureCodes = item.getProcedureCodes();
+            // Compress the codes for display
+            String displayCodes = DentalCodeUtil.compressDentalCodes(procedureCodes);
+            procedureCodeLabel.setText(displayCodes);
+
+            // Use the teeth numbers property without shorthand
             String teethNumbers = item.getTeethNumbers();
-            String teethDisplay = TeethNotationUtil.toShorthand(teethNumbers).replace(";", ",");
-            teethLabel.setText(teethDisplay);
+            teethLabel.setText(teethNumbers);
 
             // Set the diagnosis and description
             String description = item.getDescription();

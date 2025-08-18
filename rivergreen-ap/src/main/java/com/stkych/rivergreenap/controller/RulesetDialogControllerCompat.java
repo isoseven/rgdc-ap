@@ -31,21 +31,21 @@ public class RulesetDialogControllerCompat {
     public ComboBox<String> getProcedureCodeComboBox() {
         // Create a dummy ComboBox that delegates to the new implementation
         ComboBox<String> dummyComboBox = new ComboBox<>();
-        
+
         // Make it editable
         dummyComboBox.setEditable(true);
-        
+
         // Set up a dummy value property that delegates to the new implementation
         StringProperty dummyValue = new SimpleStringProperty();
         dummyValue.addListener((observable, oldValue, newValue) -> {
             if (newValue != null && !newValue.isEmpty()) {
-                controller.setProcedureCode(newValue);
+                controller.setProcedureCodes(newValue);
             }
         });
-        
+
         // Override the getValue method to delegate to the new implementation
         dummyComboBox.valueProperty().bindBidirectional(dummyValue);
-        
+
         return dummyComboBox;
     }
 
@@ -68,9 +68,19 @@ public class RulesetDialogControllerCompat {
     }
 
     /**
-     * Gets the procedure code as a string.
+     * Gets the procedure codes as a comma-separated string.
      *
-     * @return The procedure code as a string
+     * @return The procedure codes as a comma-separated string
+     */
+    public String getProcedureCodes() {
+        return controller.getProcedureCodes();
+    }
+
+    /**
+     * Gets the procedure code as a string.
+     * This method is provided for backward compatibility.
+     *
+     * @return The first procedure code as a string
      */
     public String getProcedureCode() {
         return controller.getProcedureCode();
@@ -128,5 +138,14 @@ public class RulesetDialogControllerCompat {
      */
     public void setSelectedTeethFromString(String teethString) {
         controller.setSelectedTeethFromString(teethString);
+    }
+
+    /**
+     * Sets the procedure codes in the codes text field.
+     *
+     * @param procedureCodes The procedure codes to set as a comma-separated list
+     */
+    public void setProcedureCodes(String procedureCodes) {
+        controller.setProcedureCodes(procedureCodes);
     }
 }

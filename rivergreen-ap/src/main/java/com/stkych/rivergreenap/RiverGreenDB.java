@@ -153,7 +153,8 @@ public class RiverGreenDB {
         // SQL Query to retrieve all priorities from the definition table
         // The definition table contains various types of definitions, including priorities
         // We filter for the category that contains priorities (Category = 20)
-        String sql = "SELECT * FROM definition WHERE Category = 20";
+        // Order by DefNum to get priorities in their internal database order (least to greatest)
+        String sql = "SELECT * FROM definition WHERE Category = 20 ORDER BY DefNum";
 
         // Execute the query
         try (Connection conn = getConnection();
@@ -182,7 +183,6 @@ public class RiverGreenDB {
         List<String> priorities = getAllPriorities();
         ObservableList<String> observablePriorities = FXCollections.observableArrayList();
         observablePriorities.add("None");
-        observablePriorities.add("n/a");
         observablePriorities.addAll(priorities);
         return observablePriorities;
     }
@@ -354,12 +354,12 @@ public class RiverGreenDB {
                 queryBuilder.append("UPDATE procedurelog SET ");
 
                 // Priority - using subquery to get DefNum from definition table
-                if (priorityName != null && !priorityName.isEmpty() && !priorityName.equals("None") && !priorityName.equals("N/A")) {
+                if (priorityName != null && !priorityName.isEmpty() && !priorityName.equals("None")) {
                     queryBuilder.append("Priority = (SELECT DefNum FROM definition WHERE ItemName = '")
                                .append(priorityName)
                                .append("' AND Category = 20 LIMIT 1), ");
                 } else {
-                    queryBuilder.append("Priority = 0, "); // Default value for no priority or N/A
+                    queryBuilder.append("Priority = 0, "); // Default value for no priority or None
                 }
 
                 // Other fields - handle null or empty values
@@ -410,12 +410,12 @@ public class RiverGreenDB {
 
                 // Update the Priority field in treatplanattach
                 // Use the same priority logic as in the procedurelog update
-                if (priorityName != null && !priorityName.isEmpty() && !priorityName.equals("None") && !priorityName.equals("N/A")) {
+                if (priorityName != null && !priorityName.isEmpty() && !priorityName.equals("None")) {
                     tpaQueryBuilder.append("Priority = (SELECT DefNum FROM definition WHERE ItemName = '")
                                .append(priorityName)
                                .append("' AND Category = 20 LIMIT 1)");
                 } else {
-                    tpaQueryBuilder.append("Priority = 0"); // Default value for no priority or N/A
+                    tpaQueryBuilder.append("Priority = 0"); // Default value for no priority or None
                 }
 
                 // Where clause - update the treatplanattach record for this procedure
