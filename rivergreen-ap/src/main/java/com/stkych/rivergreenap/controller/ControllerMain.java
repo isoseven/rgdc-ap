@@ -39,6 +39,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.logging.Logger;
 import java.util.logging.Level;
@@ -78,6 +79,9 @@ public class ControllerMain extends Controller {
 
     @FXML
     private MenuButton rulesetSelectMenuButton;
+
+    @FXML
+    private CheckBox applyToNAOnlyCheckBox;
 
     private ObservableList<TreatmentPlanProcedure> procedures = FXCollections.observableArrayList();
 
@@ -180,7 +184,7 @@ public class ControllerMain extends Controller {
 
     /**
      * Loads and displays procedures for a specified patient in the list view.
-     * This method retrieves the procedures from the database and populates the ListView.
+     * This method retrieves the procedures from the database, sorts them by priority, and populates the ListView.
      *
      * @param patientNumber The unique identifier of the patient whose procedures are to be loaded
      * @throws SQLException If a database error occurs during the data retrieval process
@@ -199,6 +203,9 @@ public class ControllerMain extends Controller {
 
         // Add all the loaded procedures
         proceduresWithHeader.addAll(loadedProcedures);
+
+        // Sort the procedures by priority (preserving the header at the top)
+        sortTreatmentPlanProceduresByPriority(proceduresWithHeader);
 
         // Set the items in the list view
         procedures.setAll(proceduresWithHeader);
@@ -298,6 +305,76 @@ public class ControllerMain extends Controller {
 
         // Update the original list with sorted priorities
         priorities.setAll(sortedPriorities);
+    }
+
+    /**
+     * Gets the priority order index for sorting treatment plan procedures.
+     * Returns a numeric index that represents the priority order as defined in the SQL database.
+     * Lower numbers indicate higher priority (should appear first in the list).
+     *
+     * @param priority The priority string
+     * @return The priority order index (lower numbers = higher priority)
+     */
+    private int getPriorityOrderIndex(String priority) {
+        if (priority == null || priority.isEmpty()) {
+            return 1000; // Empty priorities go at the end
+        }
+
+        // Special priorities at the beginning
+        switch (priority) {
+            case "N/A": return 0;
+            case "None": return 1;
+            case "Next": return 2;
+        }
+
+        // Numbered priorities (1, 1A, 1B, 1C, 1 Wait, 1 Decline, 2, 2A, etc.)
+        for (int i = 1; i <= 10; i++) {
+            if (priority.equals(String.valueOf(i))) {
+                return 3 + (i - 1) * 6; // Base priority: 3, 9, 15, 21, etc.
+            }
+            if (priority.equals(i + "A")) {
+                return 3 + (i - 1) * 6 + 1; // A variant: 4, 10, 16, 22, etc.
+            }
+            if (priority.equals(i + "B")) {
+                return 3 + (i - 1) * 6 + 2; // B variant: 5, 11, 17, 23, etc.
+            }
+            if (priority.equals(i + "C")) {
+                return 3 + (i - 1) * 6 + 3; // C variant: 6, 12, 18, 24, etc.
+            }
+            if (priority.equals(i + " Wait")) {
+                return 3 + (i - 1) * 6 + 4; // Wait variant: 7, 13, 19, 25, etc.
+            }
+            if (priority.equals(i + " Decline")) {
+                return 3 + (i - 1) * 6 + 5; // Decline variant: 8, 14, 20, 26, etc.
+            }
+        }
+
+        // All other priorities go at the end
+        return 2000 + priority.hashCode(); // Use hashCode for consistent ordering of unknown priorities
+    }
+
+    /**
+     * Sorts treatment plan procedures by priority in the same order as defined in the SQL database.
+     * The header item (index 0) is preserved at the top.
+     *
+     * @param procedures The list of procedures to sort
+     */
+    private void sortTreatmentPlanProceduresByPriority(ObservableList<TreatmentPlanProcedure> procedures) {
+        if (procedures.size() <= 1) {
+            return; // No need to sort if there's only a header or no items
+        }
+
+        // Extract the header (first item) and the actual procedures
+        TreatmentPlanProcedure header = procedures.get(0);
+        List<TreatmentPlanProcedure> proceduresToSort = new ArrayList<>(procedures.subList(1, procedures.size()));
+
+        // Sort the procedures by priority
+        proceduresToSort.sort(Comparator.comparingInt(procedure -> getPriorityOrderIndex(procedure.getPriority())));
+
+        // Rebuild the list with header first, then sorted procedures
+        procedures.clear();
+        procedures.add(header);
+        procedures.addAll(proceduresToSort);
     }
 
     /**
@@ -846,7 +923,7 @@ public class ControllerMain extends Controller {
             // Counter for tracking how many items this rule is applied to
             int appliedCount = 0;
 
-            // Update the priority and diagnosis of procedures with matching procedure code and teeth
+            // Update the priority of procedures with matching conditions (procedure code, teeth, and diagnosis)
             for (int j = 1; j < procedures.size(); j++) { // Skip the header item (index 0)
                 TreatmentPlanProcedure procedure = procedures.get(j);
 
@@ -854,41 +931,60 @@ public class ControllerMain extends Controller {
                 String procedureCode = procedure.getProcedureCode();
                 System.out.println("[DEBUG_LOG] Checking procedure #" + j + " with code: " + procedureCode);
 
-                if (ruleProcedureCodes.contains(procedureCode)) {
-                    System.out.println("[DEBUG_LOG] Found matching code: " + procedureCode + " in ruleset item #" + i);
+                boolean codeMatches = ruleProcedureCodes.isEmpty() || ruleProcedureCodes.contains(procedureCode);
+                if (codeMatches) {
+                    System.out.println("[DEBUG_LOG] Code matches or no code specified in rule for procedure #" + j);
 
-                    // If the rule has teeth specified, check if the procedure's tooth matches any of them
-                    if (!ruleTeeth.isEmpty()) {
-                        String procedureTooth = procedure.getToothNumber();
-                        System.out.println("[DEBUG_LOG] Procedure has tooth: " + procedureTooth + ", checking against ruleset teeth: " + ruleTeeth);
+                    // Check if diagnosis matches (if specified in the rule)
+                    boolean diagnosisMatches = true;
+                    if (diagnosis != null && !diagnosis.isEmpty()) {
+                        String procedureDiagnosis = procedure.getDiagnosis();
+                        diagnosisMatches = diagnosis.equalsIgnoreCase(procedureDiagnosis);
+                        System.out.println("[DEBUG_LOG] Checking diagnosis match: rule='" + diagnosis + "' vs procedure='" + procedureDiagnosis + "' -> " + diagnosisMatches);
+                    }
 
-                        if (procedureTooth != null && !procedureTooth.isEmpty() && ruleTeeth.contains(procedureTooth)) {
-                            // Update priority and diagnosis if both procedure code and tooth match
-                            System.out.println("[DEBUG_LOG] Found matching tooth: " + procedureTooth + ", applying priority: " + priority);
-                            procedure.setPriority(priority);
+                    if (diagnosisMatches) {
+                        // Check if the "Apply only to N/A treatments" checkbox is selected
+                        boolean applyToNAOnly = applyToNAOnlyCheckBox != null && applyToNAOnlyCheckBox.isSelected();
+                        boolean hasNAPriority = false;
+                        
+                        if (applyToNAOnly) {
+                            // Check if the procedure has n/a (null, empty, or "n/a") priority
+                            String currentPriority = procedure.getPriority();
+                            
+                            hasNAPriority = (currentPriority == null || currentPriority.isEmpty() || 
+                                           currentPriority.equalsIgnoreCase("n/a"));
+                            
+                            System.out.println("[DEBUG_LOG] Apply to N/A only is checked. Current priority: '" + currentPriority + 
+                                             "', has N/A: " + hasNAPriority);
+                        }
+                        
+                        // Only apply the rule if checkbox is not selected OR if procedure has N/A priority
+                        if (!applyToNAOnly || hasNAPriority) {
+                            // If the rule has teeth specified, check if the procedure's tooth matches any of them
+                            if (!ruleTeeth.isEmpty()) {
+                                String procedureTooth = procedure.getToothNumber();
+                                System.out.println("[DEBUG_LOG] Procedure has tooth: " + procedureTooth + ", checking against ruleset teeth: " + ruleTeeth);
 
-                            // Use the diagnosis property
-                            if (diagnosis != null && !diagnosis.isEmpty()) {
-                                System.out.println("[DEBUG_LOG] Applying diagnosis: " + diagnosis);
-                                procedure.setDiagnosis(diagnosis);
+                                if (procedureTooth != null && !procedureTooth.isEmpty() && ruleTeeth.contains(procedureTooth)) {
+                                    // Update priority if procedure code, diagnosis, and tooth all match
+                                    System.out.println("[DEBUG_LOG] Found matching tooth: " + procedureTooth + ", applying priority: " + priority);
+                                    procedure.setPriority(priority);
+                                    appliedCount++;
+                                } else {
+                                    System.out.println("[DEBUG_LOG] No matching tooth found, skipping this procedure");
+                                }
+                            } else {
+                                // If the rule doesn't specify teeth, update all procedures with matching code and diagnosis
+                                System.out.println("[DEBUG_LOG] No teeth specified in ruleset, applying priority: " + priority);
+                                procedure.setPriority(priority);
+                                appliedCount++;
                             }
-
-                            appliedCount++;
                         } else {
-                            System.out.println("[DEBUG_LOG] No matching tooth found, skipping this procedure");
+                            System.out.println("[DEBUG_LOG] Skipping procedure because 'Apply only to N/A treatments' is checked and procedure doesn't have N/A priority");
                         }
                     } else {
-                        // If the rule doesn't specify teeth, update all procedures with matching code
-                        System.out.println("[DEBUG_LOG] No teeth specified in ruleset, applying priority: " + priority);
-                        procedure.setPriority(priority);
-
-                        // Also update diagnosis even if no teeth are specified
-                        if (diagnosis != null && !diagnosis.isEmpty()) {
-                            System.out.println("[DEBUG_LOG] Applying diagnosis: " + diagnosis);
-                            procedure.setDiagnosis(diagnosis);
-                        }
-
-                        appliedCount++;
+                        System.out.println("[DEBUG_LOG] Diagnosis doesn't match, skipping this procedure");
                     }
                 } else {
                     System.out.println("[DEBUG_LOG] No matching code found for procedure");

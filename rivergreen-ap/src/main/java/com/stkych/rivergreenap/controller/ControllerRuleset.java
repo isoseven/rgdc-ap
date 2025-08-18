@@ -194,6 +194,24 @@ public class ControllerRuleset implements Initializable {
             // Set the content of the dialog
             dialog.getDialogPane().setContent(root);
 
+            // Add validation to prevent dialog from closing when validation fails
+            Button okButton = (Button) dialog.getDialogPane().lookupButton(okButtonType);
+            okButton.addEventFilter(javafx.event.ActionEvent.ACTION, e -> {
+                String priority = controller.getPriorityComboBox().getValue();
+                if (priority == null || priority.isEmpty()) {
+                    priority = controller.getPriorityComboBox().getEditor().getText();
+                }
+                String procedureCode = controller.getProcedureCodes();
+                String teethNumbers = controller.getSelectedTeethAsString();
+                String diagnosis = controller.getDiagnosis();
+                
+                // Validate inputs and prevent dialog close if validation fails
+                if (!validateRulesetItem(procedureCode, teethNumbers, priority, diagnosis)) {
+                    System.out.println("[DEBUG_LOG] New ruleset item validation failed - keeping dialog open");
+                    e.consume(); // Prevent the dialog from closing
+                }
+            });
+
             // Convert the result to a RulesetItem when the OK button is clicked
             dialog.setResultConverter(dialogButton -> {
                 if (dialogButton == okButtonType) {
@@ -212,12 +230,6 @@ public class ControllerRuleset implements Initializable {
 
                     String diagnosis = controller.getDiagnosis();
                     System.out.println("[DEBUG_LOG] New ruleset item - diagnosis: '" + diagnosis + "'");
-
-                    // Validate inputs
-                    if (!validateRulesetItem(procedureCode, teethNumbers, priority, diagnosis)) {
-                        System.out.println("[DEBUG_LOG] New ruleset item validation failed");
-                        return null;
-                    }
 
                     System.out.println("[DEBUG_LOG] Creating new RulesetItem with procedure codes: '" + procedureCode + "'");
                     RulesetItem item = new RulesetItem(priority, procedureCode, description, teethNumbers);
@@ -316,6 +328,24 @@ public class ControllerRuleset implements Initializable {
             // Set the content of the dialog
             dialog.getDialogPane().setContent(root);
 
+            // Add validation to prevent dialog from closing when validation fails
+            Button okButton = (Button) dialog.getDialogPane().lookupButton(okButtonType);
+            okButton.addEventFilter(javafx.event.ActionEvent.ACTION, e -> {
+                String priority = controller.getPriorityComboBox().getValue();
+                if (priority == null || priority.isEmpty()) {
+                    priority = controller.getPriorityComboBox().getEditor().getText();
+                }
+                String procedureCode = controller.getProcedureCodes();
+                String teethNumbers = controller.getSelectedTeethAsString();
+                String diagnosis = controller.getDiagnosis();
+                
+                // Validate inputs and prevent dialog close if validation fails
+                if (!validateRulesetItem(procedureCode, teethNumbers, priority, diagnosis)) {
+                    System.out.println("[DEBUG_LOG] Edit ruleset item validation failed - keeping dialog open");
+                    e.consume(); // Prevent the dialog from closing
+                }
+            });
+
             // Convert the result to a RulesetItem when the OK button is clicked
             dialog.setResultConverter(dialogButton -> {
                 if (dialogButton == okButtonType) {
@@ -334,12 +364,6 @@ public class ControllerRuleset implements Initializable {
 
                     String diagnosis = controller.getDiagnosis();
                     System.out.println("[DEBUG_LOG] Edit ruleset item - updated diagnosis: '" + diagnosis + "'");
-
-                    // Validate inputs
-                    if (!validateRulesetItem(procedureCode, teethNumbers, priority, diagnosis)) {
-                        System.out.println("[DEBUG_LOG] Edit ruleset item validation failed");
-                        return null;
-                    }
 
                     // Create a new RulesetItem with the updated values
                     System.out.println("[DEBUG_LOG] Creating updated RulesetItem with procedure codes: '" + procedureCode + "'");
@@ -386,8 +410,8 @@ public class ControllerRuleset implements Initializable {
     }
 
     /**
-     * Validates a ruleset item to ensure it has at least one of dental code or tooth selection,
-     * and at least one of diagnosis or priority.
+     * Validates a ruleset item to ensure it has priority (output) and at least one condition 
+     * (dental code, teeth, or diagnosis).
      *
      * @param procedureCode The dental procedure code
      * @param teethNumbers The selected teeth number as a string
@@ -396,18 +420,21 @@ public class ControllerRuleset implements Initializable {
      * @return true if the ruleset item is valid, false otherwise
      */
     private boolean validateRulesetItem(String procedureCode, String teethNumbers, String priority, String diagnosis) {
-        boolean hasDentalCodeOrTeeth = (procedureCode != null && !procedureCode.isEmpty()) || 
-                                      (teethNumbers != null && !teethNumbers.isEmpty());
-        boolean hasDiagnosisOrPriority = (diagnosis != null && !diagnosis.isEmpty()) || 
-                                        (priority != null && !priority.isEmpty());
+        // Check if priority is specified (required as the output)
+        boolean hasPriority = priority != null && !priority.isEmpty();
+        
+        // Check if at least one condition is specified (dental code, teeth, or diagnosis)
+        boolean hasCondition = (procedureCode != null && !procedureCode.isEmpty()) || 
+                              (teethNumbers != null && !teethNumbers.isEmpty()) ||
+                              (diagnosis != null && !diagnosis.isEmpty());
 
-        if (!hasDentalCodeOrTeeth) {
-            showErrorAlert("Validation Error", "Each rule must have at least one of either dental code or tooth selection.");
+        if (!hasPriority) {
+            showErrorAlert("Validation Error", "Each rule must have a priority specified.");
             return false;
         }
 
-        if (!hasDiagnosisOrPriority) {
-            showErrorAlert("Validation Error", "Each rule must have at least one of either diagnosis or priority.");
+        if (!hasCondition) {
+            showErrorAlert("Validation Error", "Each rule must have at least one condition: dental code, tooth selection, or diagnosis.");
             return false;
         }
 

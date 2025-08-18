@@ -153,7 +153,8 @@ public class RiverGreenDB {
         // SQL Query to retrieve all priorities from the definition table
         // The definition table contains various types of definitions, including priorities
         // We filter for the category that contains priorities (Category = 20)
-        String sql = "SELECT * FROM definition WHERE Category = 20";
+        // Order by DefNum to get priorities in their internal database order (least to greatest)
+        String sql = "SELECT * FROM definition WHERE Category = 20 ORDER BY DefNum";
 
         // Execute the query
         try (Connection conn = getConnection();
