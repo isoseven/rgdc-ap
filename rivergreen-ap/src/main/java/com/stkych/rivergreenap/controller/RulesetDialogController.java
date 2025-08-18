@@ -74,7 +74,7 @@ public class RulesetDialogController implements Initializable {
         // Add listener to priority combo box
         priorityComboBox.valueProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue != null) {
-                if (newValue.equals("n/a")) {
+                if (newValue.equals("none")) {
                     selectedPriority = "";
                 } else {
                     selectedPriority = newValue;
@@ -85,7 +85,7 @@ public class RulesetDialogController implements Initializable {
         // Add listener to diagnosis combo box
         diagnosisComboBox.valueProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue != null) {
-                if (newValue.equals("n/a")) {
+                if (newValue.equals("none")) {
                     selectedDiagnosis = "";
                 } else {
                     selectedDiagnosis = newValue;

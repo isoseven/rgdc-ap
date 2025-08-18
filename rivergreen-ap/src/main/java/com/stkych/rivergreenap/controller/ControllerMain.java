@@ -275,13 +275,8 @@ public class ControllerMain extends Controller {
         // Create a new list to append to
         ObservableList<String> sortedPriorities = FXCollections.observableArrayList();
 
-        // Start by appending "N/A" as the first priority
-        sortedPriorities.add("N/A");
-
-        // Then append "None" if it's not already in the list
-        if (!priorities.contains("None")) {
-            sortedPriorities.add("None");
-        }
+        // Start by appending "None" as the first priority
+        sortedPriorities.add("None");
 
         // Then append "Next"
         sortedPriorities.add("Next");
@@ -322,30 +317,29 @@ public class ControllerMain extends Controller {
 
         // Special priorities at the beginning
         switch (priority) {
-            case "N/A": return 0;
-            case "None": return 1;
-            case "Next": return 2;
+            case "None": return 0;
+            case "Next": return 1;
         }
 
         // Numbered priorities (1, 1A, 1B, 1C, 1 Wait, 1 Decline, 2, 2A, etc.)
         for (int i = 1; i <= 10; i++) {
             if (priority.equals(String.valueOf(i))) {
-                return 3 + (i - 1) * 6; // Base priority: 3, 9, 15, 21, etc.
+                return 2 + (i - 1) * 6; // Base priority: 2, 8, 14, 20, etc.
             }
             if (priority.equals(i + "A")) {
-                return 3 + (i - 1) * 6 + 1; // A variant: 4, 10, 16, 22, etc.
+                return 2 + (i - 1) * 6 + 1; // A variant: 3, 9, 15, 21, etc.
             }
             if (priority.equals(i + "B")) {
-                return 3 + (i - 1) * 6 + 2; // B variant: 5, 11, 17, 23, etc.
+                return 2 + (i - 1) * 6 + 2; // B variant: 4, 10, 16, 22, etc.
             }
             if (priority.equals(i + "C")) {
-                return 3 + (i - 1) * 6 + 3; // C variant: 6, 12, 18, 24, etc.
+                return 2 + (i - 1) * 6 + 3; // C variant: 5, 11, 17, 23, etc.
             }
             if (priority.equals(i + " Wait")) {
-                return 3 + (i - 1) * 6 + 4; // Wait variant: 7, 13, 19, 25, etc.
+                return 2 + (i - 1) * 6 + 4; // Wait variant: 6, 12, 18, 24, etc.
             }
             if (priority.equals(i + " Decline")) {
-                return 3 + (i - 1) * 6 + 5; // Decline variant: 8, 14, 20, 26, etc.
+                return 2 + (i - 1) * 6 + 5; // Decline variant: 7, 13, 19, 25, etc.
             }
         }
 
@@ -944,22 +938,22 @@ public class ControllerMain extends Controller {
                     }
 
                     if (diagnosisMatches) {
-                        // Check if the "Apply only to N/A treatments" checkbox is selected
+                        // Check if the "Apply only to None treatments" checkbox is selected
                         boolean applyToNAOnly = applyToNAOnlyCheckBox != null && applyToNAOnlyCheckBox.isSelected();
                         boolean hasNAPriority = false;
                         
                         if (applyToNAOnly) {
-                            // Check if the procedure has n/a (null, empty, or "n/a") priority
+                            // Check if the procedure has none (null, empty, or "none") priority
                             String currentPriority = procedure.getPriority();
                             
                             hasNAPriority = (currentPriority == null || currentPriority.isEmpty() || 
-                                           currentPriority.equalsIgnoreCase("n/a"));
+                                           currentPriority.equalsIgnoreCase("none"));
                             
-                            System.out.println("[DEBUG_LOG] Apply to N/A only is checked. Current priority: '" + currentPriority + 
-                                             "', has N/A: " + hasNAPriority);
+                            System.out.println("[DEBUG_LOG] Apply to None only is checked. Current priority: '" + currentPriority + 
+                                             "', has None: " + hasNAPriority);
                         }
                         
-                        // Only apply the rule if checkbox is not selected OR if procedure has N/A priority
+                        // Only apply the rule if checkbox is not selected OR if procedure has None priority
                         if (!applyToNAOnly || hasNAPriority) {
                             // If the rule has teeth specified, check if the procedure's tooth matches any of them
                             if (!ruleTeeth.isEmpty()) {
@@ -981,7 +975,7 @@ public class ControllerMain extends Controller {
                                 appliedCount++;
                             }
                         } else {
-                            System.out.println("[DEBUG_LOG] Skipping procedure because 'Apply only to N/A treatments' is checked and procedure doesn't have N/A priority");
+                            System.out.println("[DEBUG_LOG] Skipping procedure because 'Apply only to None treatments' is checked and procedure doesn't have None priority");
                         }
                     } else {
                         System.out.println("[DEBUG_LOG] Diagnosis doesn't match, skipping this procedure");
