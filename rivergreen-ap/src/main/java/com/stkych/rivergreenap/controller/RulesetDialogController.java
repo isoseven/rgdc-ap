@@ -171,18 +171,14 @@ public class RulesetDialogController implements Initializable {
         // Get the codes from the codes text field
         if (codesTextField != null && !codesTextField.getText().isEmpty()) {
             String codesText = codesTextField.getText();
-            System.out.println("[DEBUG_LOG] Getting procedure codes from text field: '" + codesText + "'");
 
             // Expand any ranges in the codes
             List<String> expandedCodes = DentalCodeUtil.expandDentalCodes(codesText);
-            System.out.println("[DEBUG_LOG] Expanded to " + expandedCodes.size() + " individual codes");
 
             // Join the expanded codes with semicolons
             String result = String.join(",", expandedCodes); // Keep using commas internally for compatibility
-            System.out.println("[DEBUG_LOG] Formatted procedure codes: '" + result + "'");
             return result;
         }
-        System.out.println("[DEBUG_LOG] No procedure codes to format (empty text field)");
         return "";
     }
 

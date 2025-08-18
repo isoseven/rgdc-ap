@@ -764,8 +764,6 @@ public class ControllerMain extends Controller {
                     continue;
                 }
 
-                // Debug: Print the entire CSV line
-                System.out.println("[DEBUG_LOG] CSV Loading - Entire line: " + line);
 
                 // Handle quoted fields (for description)
                 List<String> parts = new ArrayList<>();
@@ -938,12 +936,6 @@ public class ControllerMain extends Controller {
             boolean isDependent = item.isDependent();
             String conditionalPriority = item.getConditionalPriority();
             String newPriority = item.getNewPriority();
-            
-            // Debug: Show what values we retrieved from the RulesetItem for dependency checking
-            System.out.println("[DEBUG_LOG] DEPENDENCY VALUES RETRIEVED for rule '" + priority + "':");
-            System.out.println("[DEBUG_LOG]   - isDependent: " + isDependent);
-            System.out.println("[DEBUG_LOG]   - conditionalPriority: '" + conditionalPriority + "' (length=" + (conditionalPriority != null ? conditionalPriority.length() : "null") + ")");
-            System.out.println("[DEBUG_LOG]   - newPriority: '" + newPriority + "' (length=" + (newPriority != null ? newPriority.length() : "null") + ")");
 
             // Only use diagnosis if it's explicitly specified in the ruleset
             // Don't use description as fallback
@@ -1003,13 +995,8 @@ public class ControllerMain extends Controller {
                                 String procedureTooth = procedure.getToothNumber();
 
                                 if (procedureTooth != null && !procedureTooth.isEmpty() && ruleTeeth.contains(procedureTooth)) {
-                                    // Check if this is a dependent rule - Step 1: Check if checkbox is checked
-                                    System.out.println("[DEBUG_LOG] DEPENDENCY CHECK - Step 1: Checking if rule is dependent (checkbox checked): " + isDependent);
-                                    System.out.println("[DEBUG_LOG] DEPENDENCY CHECK - Values: isDependent=" + isDependent + ", conditionalPriority='" + conditionalPriority + "', newPriority='" + newPriority + "'");
-                                    System.out.println("[DEBUG_LOG] DEPENDENCY CHECK - Condition parts: isDependent=" + isDependent + ", conditionalPriority!=null=" + (conditionalPriority != null) + ", !conditionalPriority.isEmpty()=" + (conditionalPriority != null && !conditionalPriority.isEmpty()));
-                                    System.out.println("[DEBUG_LOG] DEPENDENCY CHECK - Full condition result: " + (isDependent && conditionalPriority != null && !conditionalPriority.isEmpty()));
+                                    // Check if this is a dependent rule
                                     if (isDependent && conditionalPriority != null && !conditionalPriority.isEmpty()) {
-                                        System.out.println("[DEBUG_LOG] DEPENDENCY CHECK - Step 2: Rule is dependent and conditional priority is specified: '" + conditionalPriority + "' with tooth " + procedureTooth);
                                         // Look for procedures in treatment plan that would get the conditional priority and have same tooth
                                         boolean dependencyFound = false;
                                         
@@ -1024,7 +1011,6 @@ public class ControllerMain extends Controller {
                                         }
                                         
                                         if (conditionalRule != null) {
-                                            System.out.println("[DEBUG_LOG] DEPENDENCY CHECK: Found conditional rule for priority '" + conditionalPriority + "'");
                                             List<String> conditionalCodes = parseProcedureCodes(conditionalRule.getProcedureCodes());
                                             List<String> conditionalTeeth = parseTeethNumbers(conditionalRule.getTeethNumbers());
                                             
@@ -1035,43 +1021,29 @@ public class ControllerMain extends Controller {
                                                     String otherTooth = otherProcedure.getToothNumber();
                                                     String otherCode = otherProcedure.getProcedureCode();
                                                     
-                                                    System.out.println("[DEBUG_LOG] DEPENDENCY CHECK: Comparing other procedure - tooth: '" + otherTooth + "', code: '" + otherCode + "'");
-                                                    
                                                     // Check if this procedure matches the conditional rule criteria and has the same tooth
                                                     boolean codeMatchesConditional = !conditionalCodes.isEmpty() && conditionalCodes.contains(otherCode);
                                                     boolean toothMatchesConditional = conditionalTeeth.isEmpty() || conditionalTeeth.contains(otherTooth);
                                                     boolean sameToothAsCurrent = procedureTooth.equals(otherTooth);
 
                                                     if (codeMatchesConditional && toothMatchesConditional && sameToothAsCurrent) {
-                                                        System.out.println("[DEBUG_LOG] DEPENDENCY CHECK: MATCH FOUND! Procedure with tooth " + otherTooth + " and code " + otherCode + " matches conditional rule criteria");
                                                         dependencyFound = true;
                                                         break;
                                                     }
                                                 }
                                             }
-                                        } else {
-                                            System.out.println("[DEBUG_LOG] DEPENDENCY CHECK: Could not find rule for conditional priority '" + conditionalPriority + "'");
                                         }
-                                        
-                                        System.out.println("[DEBUG_LOG] DEPENDENCY CHECK: Final result - dependencyFound: " + dependencyFound);
                                         
                                         if (dependencyFound) {
                                             // Replace priority with new priority
-                                            System.out.println("[DEBUG_LOG] PRIORITY REPLACEMENT: Procedure " + procedureCode + " tooth " + procedureTooth + " - replacing '" + priority + "' with '" + newPriority + "' (dependency found)");
                                             procedure.setPriority(newPriority);
                                             appliedCount++;
                                         } else {
                                             // Apply normal priority since dependency not found
-                                            System.out.println("[DEBUG_LOG] DEPENDENCY CHECK: No dependency found, applying normal priority '" + priority + "'");
                                             procedure.setPriority(priority);
                                             appliedCount++;
                                         }
                                     } else {
-                                        if (!isDependent) {
-                                            System.out.println("[DEBUG_LOG] DEPENDENCY CHECK: Rule is NOT dependent - checkbox is unchecked (isDependent=false)");
-                                        } else {
-                                            System.out.println("[DEBUG_LOG] DEPENDENCY CHECK: Rule checkbox is checked but conditional priority is missing - conditionalPriority='" + conditionalPriority + "'");
-                                        }
                                         // Normal rule - Update priority if procedure code, diagnosis, and tooth all match
                                         procedure.setPriority(priority);
                                         appliedCount++;
@@ -1079,12 +1051,7 @@ public class ControllerMain extends Controller {
                                 }
                             } else {
                                 // If the rule doesn't specify teeth, update all procedures with matching code and diagnosis
-                                System.out.println("[DEBUG_LOG] DEPENDENCY CHECK (no teeth) - Step 1: Checking if rule is dependent (checkbox checked): " + isDependent);
-                                System.out.println("[DEBUG_LOG] DEPENDENCY CHECK (no teeth) - Values: isDependent=" + isDependent + ", conditionalPriority='" + conditionalPriority + "', newPriority='" + newPriority + "'");
-                                System.out.println("[DEBUG_LOG] DEPENDENCY CHECK (no teeth) - Condition parts: isDependent=" + isDependent + ", conditionalPriority!=null=" + (conditionalPriority != null) + ", !conditionalPriority.isEmpty()=" + (conditionalPriority != null && !conditionalPriority.isEmpty()));
-                                System.out.println("[DEBUG_LOG] DEPENDENCY CHECK (no teeth) - Full condition result: " + (isDependent && conditionalPriority != null && !conditionalPriority.isEmpty()));
                                 if (isDependent && conditionalPriority != null && !conditionalPriority.isEmpty()) {
-                                    System.out.println("[DEBUG_LOG] DEPENDENCY CHECK (no teeth) - Step 2: Rule is dependent and conditional priority is specified: '" + conditionalPriority + "' on any tooth");
                                     // Look for procedures in treatment plan that would get the conditional priority
                                     boolean dependencyFound = false;
                                     
@@ -1099,7 +1066,6 @@ public class ControllerMain extends Controller {
                                     }
                                     
                                     if (conditionalRule != null) {
-                                        System.out.println("[DEBUG_LOG] DEPENDENCY CHECK (no teeth): Found conditional rule for priority '" + conditionalPriority + "'");
                                         List<String> conditionalCodes = parseProcedureCodes(conditionalRule.getProcedureCodes());
                                         List<String> conditionalTeeth = parseTeethNumbers(conditionalRule.getTeethNumbers());
                                         
@@ -1110,42 +1076,28 @@ public class ControllerMain extends Controller {
                                                 String otherTooth = otherProcedure.getToothNumber();
                                                 String otherCode = otherProcedure.getProcedureCode();
                                                 
-                                                System.out.println("[DEBUG_LOG] DEPENDENCY CHECK (no teeth): Comparing other procedure - tooth: '" + otherTooth + "', code: '" + otherCode + "'");
-                                                
                                                 // Check if this procedure matches the conditional rule criteria
                                                 boolean codeMatchesConditional = !conditionalCodes.isEmpty() && conditionalCodes.contains(otherCode);
                                                 boolean toothMatchesConditional = conditionalTeeth.isEmpty() || conditionalTeeth.contains(otherTooth);
 
                                                 if (codeMatchesConditional && toothMatchesConditional) {
-                                                    System.out.println("[DEBUG_LOG] DEPENDENCY CHECK (no teeth): MATCH FOUND! Procedure with tooth " + otherTooth + " and code " + otherCode + " matches conditional rule criteria");
                                                     dependencyFound = true;
                                                     break;
                                                 }
                                             }
                                         }
-                                    } else {
-                                        System.out.println("[DEBUG_LOG] DEPENDENCY CHECK (no teeth): Could not find rule for conditional priority '" + conditionalPriority + "'");
                                     }
-                                    
-                                    System.out.println("[DEBUG_LOG] DEPENDENCY CHECK (no teeth): Final result - dependencyFound: " + dependencyFound);
                                     
                                     if (dependencyFound) {
                                         // Replace priority with new priority
-                                        System.out.println("[DEBUG_LOG] PRIORITY REPLACEMENT: Procedure " + procedureCode + " - replacing '" + priority + "' with '" + newPriority + "' (dependency found)");
                                         procedure.setPriority(newPriority);
                                         appliedCount++;
                                     } else {
                                         // Apply normal priority since dependency not found
-                                        System.out.println("[DEBUG_LOG] DEPENDENCY CHECK (no teeth): No dependency found, applying normal priority '" + priority + "'");
                                         procedure.setPriority(priority);
                                         appliedCount++;
                                     }
                                 } else {
-                                    if (!isDependent) {
-                                        System.out.println("[DEBUG_LOG] DEPENDENCY CHECK (no teeth): Rule is NOT dependent - checkbox is unchecked (isDependent=false)");
-                                    } else {
-                                        System.out.println("[DEBUG_LOG] DEPENDENCY CHECK (no teeth): Rule checkbox is checked but conditional priority is missing - conditionalPriority='" + conditionalPriority + "'");
-                                    }
                                     // Normal rule - No teeth specified in ruleset, applying priority
                                     procedure.setPriority(priority);
                                     appliedCount++;

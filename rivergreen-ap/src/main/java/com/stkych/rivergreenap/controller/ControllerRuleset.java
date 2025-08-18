@@ -208,7 +208,6 @@ public class ControllerRuleset implements Initializable {
                 
                 // Validate inputs and prevent dialog close if validation fails
                 if (!validateRulesetItem(procedureCode, teethNumbers, priority, diagnosis)) {
-                    System.out.println("[DEBUG_LOG] New ruleset item validation failed - keeping dialog open");
                     e.consume(); // Prevent the dialog from closing
                 }
             });
@@ -221,23 +220,16 @@ public class ControllerRuleset implements Initializable {
                         priority = controller.getPriorityComboBox().getEditor().getText();
                     }
                     String procedureCode = controller.getProcedureCodes();
-                    System.out.println("[DEBUG_LOG] New ruleset item - retrieved procedure codes: '" + procedureCode + "'");
 
                     String description = controller.getDescription();
-                    System.out.println("[DEBUG_LOG] New ruleset item - description: '" + description + "'");
 
                     String teethNumbers = controller.getSelectedTeethAsString();
-                    System.out.println("[DEBUG_LOG] New ruleset item - teeth numbers: '" + teethNumbers + "'");
 
                     String diagnosis = controller.getDiagnosis();
-                    System.out.println("[DEBUG_LOG] New ruleset item - diagnosis: '" + diagnosis + "'");
 
                     boolean dependent = controller.isDependent();
                     String conditionalPriority = controller.getConditionalPriority();
                     String newPriority = controller.getNewPriority();
-                    System.out.println("[DEBUG_LOG] New ruleset item - dependent: " + dependent + ", conditionalPriority: '" + conditionalPriority + "', newPriority: '" + newPriority + "'");
-
-                    System.out.println("[DEBUG_LOG] Creating new RulesetItem with procedure codes: '" + procedureCode + "'");
                     RulesetItem item = new RulesetItem(priority, procedureCode, description, teethNumbers);
                     if (diagnosis != null && !diagnosis.isEmpty()) {
                         item.setDiagnosis(diagnosis);
@@ -322,7 +314,6 @@ public class ControllerRuleset implements Initializable {
             controller.getPriorityComboBox().setValue(selectedItem.getPriority());
 
             String existingCodes = selectedItem.getProcedureCodes();
-            System.out.println("[DEBUG_LOG] Edit ruleset item - existing procedure codes: '" + existingCodes + "'");
             controller.getProcedureCodeComboBox().setValue(existingCodes);
 
             controller.setDescription(selectedItem.getDescription());
@@ -359,7 +350,6 @@ public class ControllerRuleset implements Initializable {
                 
                 // Validate inputs and prevent dialog close if validation fails
                 if (!validateRulesetItem(procedureCode, teethNumbers, priority, diagnosis)) {
-                    System.out.println("[DEBUG_LOG] Edit ruleset item validation failed - keeping dialog open");
                     e.consume(); // Prevent the dialog from closing
                 }
             });
@@ -372,24 +362,18 @@ public class ControllerRuleset implements Initializable {
                         priority = controller.getPriorityComboBox().getEditor().getText();
                     }
                     String procedureCode = controller.getProcedureCodes();
-                    System.out.println("[DEBUG_LOG] Edit ruleset item - updated procedure codes: '" + procedureCode + "'");
 
                     String description = controller.getDescription();
-                    System.out.println("[DEBUG_LOG] Edit ruleset item - updated description: '" + description + "'");
 
                     String teethNumbers = controller.getSelectedTeethAsString();
-                    System.out.println("[DEBUG_LOG] Edit ruleset item - updated teeth numbers: '" + teethNumbers + "'");
 
                     String diagnosis = controller.getDiagnosis();
-                    System.out.println("[DEBUG_LOG] Edit ruleset item - updated diagnosis: '" + diagnosis + "'");
 
                     boolean dependent = controller.isDependent();
                     String conditionalPriority = controller.getConditionalPriority();
                     String newPriority = controller.getNewPriority();
-                    System.out.println("[DEBUG_LOG] Edit ruleset item - dependent: " + dependent + ", conditionalPriority: '" + conditionalPriority + "', newPriority: '" + newPriority + "'");
 
                     // Create a new RulesetItem with the updated values
-                    System.out.println("[DEBUG_LOG] Creating updated RulesetItem with procedure codes: '" + procedureCode + "'");
                     RulesetItem updatedItem = new RulesetItem(priority, procedureCode, description, teethNumbers);
 
                     // Set the diagnosis from the controller if it's not null or empty
@@ -783,8 +767,6 @@ public class ControllerRuleset implements Initializable {
                     continue;
                 }
 
-                // Debug: Print the entire CSV line
-                System.out.println("[DEBUG_LOG] CSV Loading - Entire line: " + line);
 
                 // Handle quoted fields (for description)
                 List<String> parts = new ArrayList<>();
@@ -836,23 +818,19 @@ public class ControllerRuleset implements Initializable {
                     // Get procedure codes if present
                     if (parts.size() > 3 && !parts.get(3).trim().isEmpty()) {
                         String rawCodes = parts.get(3).trim();
-                        System.out.println("[DEBUG_LOG] Loading procedure codes from CSV: '" + rawCodes + "'");
 
                         // Process semicolon-separated procedure codes
                         String[] codes = rawCodes.split(";");
-                        System.out.println("[DEBUG_LOG] Split into " + codes.length + " codes for formatting");
 
                         StringBuilder formattedCodes = new StringBuilder();
                         for (int i = 0; i < codes.length; i++) {
                             String code = codes[i].trim();
-                            System.out.println("[DEBUG_LOG] Processing code #" + (i+1) + ": '" + code + "'");
 
                             // Add letter prefix if missing (default to D)
                             if (!code.isEmpty()) {
                                 char first = Character.toUpperCase(code.charAt(0));
                                 if (first != 'D' && first != 'N') {
                                     code = "D" + code;
-                                    System.out.println("[DEBUG_LOG] Added default 'D' prefix: '" + code + "'");
                                 }
                             }
                             formattedCodes.append(code);
@@ -861,7 +839,6 @@ public class ControllerRuleset implements Initializable {
                             }
                         }
                         procedureCode = formattedCodes.toString();
-                        System.out.println("[DEBUG_LOG] Formatted procedure codes: '" + procedureCode + "'");
                     }
 
                     // Get description if present
@@ -887,14 +864,6 @@ public class ControllerRuleset implements Initializable {
                         newPriority = parts.get(7).trim();
                     }
 
-                    // Enhanced debug: Show CSV line with parsed dependency values
-                    System.out.println("[DEBUG_LOG] === CSV LINE WITH DEPENDENCY VALUES ===");
-                    System.out.println("[DEBUG_LOG] Raw CSV Line: " + line);
-                    System.out.println("[DEBUG_LOG] Parsed Values for Priority '" + priority + "':");
-                    System.out.println("[DEBUG_LOG]   - Dependent: " + dependent + " (from position 5: '" + (parts.size() > 5 ? parts.get(5).trim() : "N/A") + "')");
-                    System.out.println("[DEBUG_LOG]   - ConditionalPriority: '" + conditionalPriority + "' (from position 6: '" + (parts.size() > 6 ? parts.get(6).trim() : "N/A") + "')");
-                    System.out.println("[DEBUG_LOG]   - NewPriority: '" + newPriority + "' (from position 7: '" + (parts.size() > 7 ? parts.get(7).trim() : "N/A") + "')");
-                    System.out.println("[DEBUG_LOG] ==========================================");
 
                     // Handle old format files (priority,procedureCode,teethNumbers,diagnosis)
                     // Check if we have a valid procedure code in the second position
@@ -925,12 +894,6 @@ public class ControllerRuleset implements Initializable {
                     // Always set conditional and new priority values (don't check for empty)
                     item.setConditionalPriority(conditionalPriority);
                     item.setNewPriority(newPriority);
-                    
-                    // Debug: Verify the values were stored correctly in the RulesetItem
-                    System.out.println("[DEBUG_LOG] CSV Loading VERIFICATION - Created RulesetItem for '" + priority + "':");
-                    System.out.println("[DEBUG_LOG]   - isDependent(): " + item.isDependent());
-                    System.out.println("[DEBUG_LOG]   - getConditionalPriority(): '" + item.getConditionalPriority() + "'");
-                    System.out.println("[DEBUG_LOG]   - getNewPriority(): '" + item.getNewPriority() + "'");
                     
                     items.add(item);
                 }
@@ -989,11 +952,9 @@ public class ControllerRuleset implements Initializable {
 
                 // Add procedure codes, preserving letter prefixes and compressing ranges
                 String procedureCodes = item.getProcedureCodes();
-                System.out.println("[DEBUG_LOG] Saving procedure codes to CSV for item #" + i + ": '" + procedureCodes + "'");
 
                 if (procedureCodes != null && !procedureCodes.isEmpty()) {
                     String compressed = DentalCodeUtil.compressDentalCodes(procedureCodes);
-                    System.out.println("[DEBUG_LOG] Compressed procedure codes for CSV: '" + compressed + "'");
                     line.append(compressed);
                 }
                 line.append(",");
