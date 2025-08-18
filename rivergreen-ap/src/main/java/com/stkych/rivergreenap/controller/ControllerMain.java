@@ -990,10 +990,10 @@ public class ControllerMain extends Controller {
                         
                         // Only apply the rule if checkbox is not selected OR if procedure has None priority
                         if (!applyToNAOnly || hasNAPriority) {
+                            String procedureTooth = procedure.getToothNumber();
+
                             // If the rule has teeth specified, check if the procedure's tooth matches any of them
                             if (!ruleTeeth.isEmpty()) {
-                                String procedureTooth = procedure.getToothNumber();
-
                                 if (procedureTooth != null && !procedureTooth.isEmpty() && ruleTeeth.contains(procedureTooth)) {
                                     // Check if this is a dependent rule
                                     if (isDependent && conditionalPriority != null && !conditionalPriority.isEmpty()) {
@@ -1052,9 +1052,9 @@ public class ControllerMain extends Controller {
                             } else {
                                 // If the rule doesn't specify teeth, update all procedures with matching code and diagnosis
                                 if (isDependent && conditionalPriority != null && !conditionalPriority.isEmpty()) {
-                                    // Look for procedures in treatment plan that would get the conditional priority
+                                    // Look for procedures in treatment plan that would get the conditional priority on the same tooth
                                     boolean dependencyFound = false;
-                                    
+
                                     // Find the rule that assigns the conditional priority
                                     RulesetItem conditionalRule = null;
                                     for (int r = 1; r < ruleset.size(); r++) {
@@ -1064,30 +1064,31 @@ public class ControllerMain extends Controller {
                                             break;
                                         }
                                     }
-                                    
+
                                     if (conditionalRule != null) {
                                         List<String> conditionalCodes = parseProcedureCodes(conditionalRule.getProcedureCodes());
                                         List<String> conditionalTeeth = parseTeethNumbers(conditionalRule.getTeethNumbers());
-                                        
-                                        // Check if any procedure matches the conditional rule criteria
+
+                                        // Check if any procedure with the same tooth matches the conditional rule criteria
                                         for (int k = 1; k < procedures.size(); k++) {
                                             if (k != j) { // Don't check the same procedure
                                                 TreatmentPlanProcedure otherProcedure = procedures.get(k);
                                                 String otherTooth = otherProcedure.getToothNumber();
                                                 String otherCode = otherProcedure.getProcedureCode();
-                                                
-                                                // Check if this procedure matches the conditional rule criteria
+
+                                                // Check if this procedure matches the conditional rule criteria and has the same tooth
                                                 boolean codeMatchesConditional = !conditionalCodes.isEmpty() && conditionalCodes.contains(otherCode);
                                                 boolean toothMatchesConditional = conditionalTeeth.isEmpty() || conditionalTeeth.contains(otherTooth);
+                                                boolean sameToothAsCurrent = procedureTooth != null && !procedureTooth.isEmpty() && procedureTooth.equals(otherTooth);
 
-                                                if (codeMatchesConditional && toothMatchesConditional) {
+                                                if (codeMatchesConditional && toothMatchesConditional && sameToothAsCurrent) {
                                                     dependencyFound = true;
                                                     break;
                                                 }
                                             }
                                         }
                                     }
-                                    
+
                                     if (dependencyFound) {
                                         // Replace priority with new priority
                                         procedure.setPriority(newPriority);
