@@ -231,10 +231,22 @@ public class ControllerRuleset implements Initializable {
                     String diagnosis = controller.getDiagnosis();
                     System.out.println("[DEBUG_LOG] New ruleset item - diagnosis: '" + diagnosis + "'");
 
+                    boolean dependent = controller.isDependent();
+                    String conditionalPriority = controller.getConditionalPriority();
+                    String newPriority = controller.getNewPriority();
+                    System.out.println("[DEBUG_LOG] New ruleset item - dependent: " + dependent + ", conditionalPriority: '" + conditionalPriority + "', newPriority: '" + newPriority + "'");
+
                     System.out.println("[DEBUG_LOG] Creating new RulesetItem with procedure codes: '" + procedureCode + "'");
                     RulesetItem item = new RulesetItem(priority, procedureCode, description, teethNumbers);
                     if (diagnosis != null && !diagnosis.isEmpty()) {
                         item.setDiagnosis(diagnosis);
+                    }
+                    item.setDependent(dependent);
+                    if (conditionalPriority != null && !conditionalPriority.isEmpty()) {
+                        item.setConditionalPriority(conditionalPriority);
+                    }
+                    if (newPriority != null && !newPriority.isEmpty()) {
+                        item.setNewPriority(newPriority);
                     }
                     return item;
                 }
@@ -320,6 +332,11 @@ public class ControllerRuleset implements Initializable {
                 controller.getDiagnosisComboBox().setValue(selectedItem.getDiagnosis());
             }
 
+            // Set the dependent fields if the selected item has dependent values
+            controller.setDependent(selectedItem.isDependent());
+            controller.setConditionalPriority(selectedItem.getConditionalPriority());
+            controller.setNewPriority(selectedItem.getNewPriority());
+
             // The procedure codes are already loaded from the database in the controller's initialize method
             controller.getProcedureCodeComboBox().setEditable(true);
 
@@ -365,6 +382,11 @@ public class ControllerRuleset implements Initializable {
                     String diagnosis = controller.getDiagnosis();
                     System.out.println("[DEBUG_LOG] Edit ruleset item - updated diagnosis: '" + diagnosis + "'");
 
+                    boolean dependent = controller.isDependent();
+                    String conditionalPriority = controller.getConditionalPriority();
+                    String newPriority = controller.getNewPriority();
+                    System.out.println("[DEBUG_LOG] Edit ruleset item - dependent: " + dependent + ", conditionalPriority: '" + conditionalPriority + "', newPriority: '" + newPriority + "'");
+
                     // Create a new RulesetItem with the updated values
                     System.out.println("[DEBUG_LOG] Creating updated RulesetItem with procedure codes: '" + procedureCode + "'");
                     RulesetItem updatedItem = new RulesetItem(priority, procedureCode, description, teethNumbers);
@@ -375,6 +397,15 @@ public class ControllerRuleset implements Initializable {
                         updatedItem.setDiagnosis(diagnosis);
                     } else if (selectedItem.getDiagnosis() != null && !selectedItem.getDiagnosis().isEmpty()) {
                         updatedItem.setDiagnosis(selectedItem.getDiagnosis());
+                    }
+
+                    // Set the dependent values
+                    updatedItem.setDependent(dependent);
+                    if (conditionalPriority != null && !conditionalPriority.isEmpty()) {
+                        updatedItem.setConditionalPriority(conditionalPriority);
+                    }
+                    if (newPriority != null && !newPriority.isEmpty()) {
+                        updatedItem.setNewPriority(newPriority);
                     }
                     return updatedItem;
                 }
@@ -751,6 +782,9 @@ public class ControllerRuleset implements Initializable {
                     continue;
                 }
 
+                // Debug: Print the entire CSV line
+                System.out.println("[DEBUG_LOG] CSV Loading - Entire line: " + line);
+
                 // Handle quoted fields (for description)
                 List<String> parts = new ArrayList<>();
                 StringBuilder sb = new StringBuilder();
@@ -831,6 +865,33 @@ public class ControllerRuleset implements Initializable {
                         description = parts.get(4).trim();
                     }
 
+                    // Get dependent flag if present (position 5)
+                    boolean dependent = false;
+                    if (parts.size() > 5 && !parts.get(5).trim().isEmpty()) {
+                        dependent = Boolean.parseBoolean(parts.get(5).trim());
+                    }
+
+                    // Get conditional priority if present (position 6)
+                    String conditionalPriority = "";
+                    if (parts.size() > 6 && !parts.get(6).trim().isEmpty()) {
+                        conditionalPriority = parts.get(6).trim();
+                    }
+
+                    // Get new priority if present (position 7)
+                    String newPriority = "";
+                    if (parts.size() > 7 && !parts.get(7).trim().isEmpty()) {
+                        newPriority = parts.get(7).trim();
+                    }
+
+                    // Enhanced debug: Show CSV line with parsed dependency values
+                    System.out.println("[DEBUG_LOG] === CSV LINE WITH DEPENDENCY VALUES ===");
+                    System.out.println("[DEBUG_LOG] Raw CSV Line: " + line);
+                    System.out.println("[DEBUG_LOG] Parsed Values for Priority '" + priority + "':");
+                    System.out.println("[DEBUG_LOG]   - Dependent: " + dependent + " (from position 5: '" + (parts.size() > 5 ? parts.get(5).trim() : "N/A") + "')");
+                    System.out.println("[DEBUG_LOG]   - ConditionalPriority: '" + conditionalPriority + "' (from position 6: '" + (parts.size() > 6 ? parts.get(6).trim() : "N/A") + "')");
+                    System.out.println("[DEBUG_LOG]   - NewPriority: '" + newPriority + "' (from position 7: '" + (parts.size() > 7 ? parts.get(7).trim() : "N/A") + "')");
+                    System.out.println("[DEBUG_LOG] ==========================================");
+
                     // Handle old format files (priority,procedureCode,teethNumbers,diagnosis)
                     // Check if we have a valid procedure code in the second position
                     if (diagnosis.startsWith("D") && (procedureCode.isEmpty() || !procedureCode.startsWith("D"))) {
@@ -856,6 +917,17 @@ public class ControllerRuleset implements Initializable {
                     if (!diagnosis.isEmpty()) {
                         item.setDiagnosis(diagnosis);
                     }
+                    item.setDependent(dependent);
+                    // Always set conditional and new priority values (don't check for empty)
+                    item.setConditionalPriority(conditionalPriority);
+                    item.setNewPriority(newPriority);
+                    
+                    // Debug: Verify the values were stored correctly in the RulesetItem
+                    System.out.println("[DEBUG_LOG] CSV Loading VERIFICATION - Created RulesetItem for '" + priority + "':");
+                    System.out.println("[DEBUG_LOG]   - isDependent(): " + item.isDependent());
+                    System.out.println("[DEBUG_LOG]   - getConditionalPriority(): '" + item.getConditionalPriority() + "'");
+                    System.out.println("[DEBUG_LOG]   - getNewPriority(): '" + item.getNewPriority() + "'");
+                    
                     items.add(item);
                 }
             }
@@ -949,6 +1021,24 @@ public class ControllerRuleset implements Initializable {
                     description = description.replace("\"", "\"\"");
                     // Wrap the description in quotes
                     line.append("\"").append(description).append("\"");
+                }
+                line.append(",");
+
+                // Add dependent flag
+                line.append(item.isDependent());
+                line.append(",");
+
+                // Add conditional priority if present
+                String conditionalPriority = item.getConditionalPriority();
+                if (conditionalPriority != null && !conditionalPriority.isEmpty()) {
+                    line.append(conditionalPriority);
+                }
+                line.append(",");
+
+                // Add new priority if present
+                String newPriority = item.getNewPriority();
+                if (newPriority != null && !newPriority.isEmpty()) {
+                    line.append(newPriority);
                 }
 
                 writer.write(line.toString());

@@ -2,6 +2,8 @@ package com.stkych.rivergreenap.model;
 
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.BooleanProperty;
 import java.util.Objects;
 
 /**
@@ -16,6 +18,9 @@ public class RulesetItem {
     private final StringProperty description;
     private final StringProperty teethNumbers;
     private final StringProperty diagnosis;
+    private final BooleanProperty dependent;
+    private final StringProperty conditionalPriority;
+    private final StringProperty newPriority;
 
     /**
      * Constructs a new RulesetItem with the specified values.
@@ -31,6 +36,9 @@ public class RulesetItem {
         this.description = new SimpleStringProperty(description);
         this.teethNumbers = new SimpleStringProperty(teethNumbers);
         this.diagnosis = new SimpleStringProperty("");
+        this.dependent = new SimpleBooleanProperty(false);
+        this.conditionalPriority = new SimpleStringProperty("");
+        this.newPriority = new SimpleStringProperty("");
     }
 
     /**
@@ -69,6 +77,9 @@ public class RulesetItem {
         this.description = new SimpleStringProperty(description);
         this.teethNumbers = new SimpleStringProperty(teethNumbers);
         this.diagnosis = new SimpleStringProperty(diagnosis);
+        this.dependent = new SimpleBooleanProperty(false);
+        this.conditionalPriority = new SimpleStringProperty("");
+        this.newPriority = new SimpleStringProperty("");
     }
 
     // Priority property
@@ -149,6 +160,54 @@ public class RulesetItem {
         this.diagnosis.set(diagnosis);
     }
 
+    // Dependent property
+    public BooleanProperty dependentProperty() {
+        return dependent;
+    }
+
+    public boolean isDependent() {
+        return dependent.get();
+    }
+
+    public void setDependent(boolean dependent) {
+        this.dependent.set(dependent);
+    }
+
+    // Conditional priority property
+    public StringProperty conditionalPriorityProperty() {
+        return conditionalPriority;
+    }
+
+    public String getConditionalPriority() {
+        return conditionalPriority.get();
+    }
+
+    public void setConditionalPriority(String conditionalPriority) {
+        this.conditionalPriority.set(conditionalPriority);
+    }
+
+    // New priority property
+    public StringProperty newPriorityProperty() {
+        return newPriority;
+    }
+
+    public String getNewPriority() {
+        return newPriority.get();
+    }
+
+    public void setNewPriority(String newPriority) {
+        this.newPriority.set(newPriority);
+    }
+
+    // Backward compatibility methods
+    public String getDependentPriority() {
+        return getConditionalPriority();
+    }
+
+    public void setDependentPriority(String dependentPriority) {
+        setConditionalPriority(dependentPriority);
+    }
+
     /**
      * Returns a string representation of this RulesetItem.
      *
@@ -162,6 +221,9 @@ public class RulesetItem {
                 ", description='" + getDescription() + '\'' +
                 ", teethNumbers='" + getTeethNumbers() + '\'' +
                 ", diagnosis='" + getDiagnosis() + '\'' +
+                ", dependent=" + isDependent() +
+                ", conditionalPriority='" + getConditionalPriority() + '\'' +
+                ", newPriority='" + getNewPriority() + '\'' +
                 '}';
     }
 
@@ -174,11 +236,14 @@ public class RulesetItem {
                 Objects.equals(getProcedureCodes(), that.getProcedureCodes()) &&
                 Objects.equals(getDescription(), that.getDescription()) &&
                 Objects.equals(getTeethNumbers(), that.getTeethNumbers()) &&
-                Objects.equals(getDiagnosis(), that.getDiagnosis());
+                Objects.equals(getDiagnosis(), that.getDiagnosis()) &&
+                isDependent() == that.isDependent() &&
+                Objects.equals(getConditionalPriority(), that.getConditionalPriority()) &&
+                Objects.equals(getNewPriority(), that.getNewPriority());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(getPriority(), getProcedureCodes(), getDescription(), getTeethNumbers(), getDiagnosis());
+        return Objects.hash(getPriority(), getProcedureCodes(), getDescription(), getTeethNumbers(), getDiagnosis(), isDependent(), getConditionalPriority(), getNewPriority());
     }
 }

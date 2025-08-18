@@ -42,6 +42,18 @@ public class RulesetDialogController implements Initializable {
     @FXML
     private TextField descriptionTextField;
 
+    @FXML
+    private CheckBox dependentCheckBox;
+
+    @FXML
+    private TextField conditionalPriorityTextField;
+
+    @FXML
+    private TextField newPriorityTextField;
+
+    @FXML
+    private TextField dependentPriorityTextField; // Keep for backward compatibility
+
     private String selectedPriority;
     private String selectedDiagnosis;
     private String procedureDescription;
@@ -370,5 +382,100 @@ public class RulesetDialogController implements Initializable {
         });
 
         return dummyComboBox;
+    }
+
+    /**
+     * Gets the dependent checkbox.
+     *
+     * @return The dependent checkbox
+     */
+    public CheckBox getDependentCheckBox() {
+        return dependentCheckBox;
+    }
+
+    /**
+     * Gets the dependent state from the checkbox.
+     *
+     * @return True if dependent is checked, false otherwise
+     */
+    public boolean isDependent() {
+        return dependentCheckBox != null && dependentCheckBox.isSelected();
+    }
+
+    /**
+     * Gets the conditional priority from the text field.
+     *
+     * @return The conditional priority as a string
+     */
+    public String getConditionalPriority() {
+        if (conditionalPriorityTextField != null && !conditionalPriorityTextField.getText().isEmpty()) {
+            return conditionalPriorityTextField.getText();
+        }
+        return "";
+    }
+
+    /**
+     * Gets the new priority from the text field.
+     *
+     * @return The new priority as a string
+     */
+    public String getNewPriority() {
+        if (newPriorityTextField != null && !newPriorityTextField.getText().isEmpty()) {
+            return newPriorityTextField.getText();
+        }
+        return "";
+    }
+
+    /**
+     * Gets the dependent priority from the text field (backward compatibility).
+     *
+     * @return The dependent priority as a string
+     */
+    public String getDependentPriority() {
+        // For backward compatibility, return conditional priority
+        return getConditionalPriority();
+    }
+
+    /**
+     * Sets the dependent checkbox state.
+     *
+     * @param dependent The dependent state to set
+     */
+    public void setDependent(boolean dependent) {
+        if (dependentCheckBox != null) {
+            dependentCheckBox.setSelected(dependent);
+        }
+    }
+
+    /**
+     * Sets the conditional priority in the text field.
+     *
+     * @param conditionalPriority The conditional priority to set
+     */
+    public void setConditionalPriority(String conditionalPriority) {
+        if (conditionalPriorityTextField != null) {
+            conditionalPriorityTextField.setText(conditionalPriority != null ? conditionalPriority : "");
+        }
+    }
+
+    /**
+     * Sets the new priority in the text field.
+     *
+     * @param newPriority The new priority to set
+     */
+    public void setNewPriority(String newPriority) {
+        if (newPriorityTextField != null) {
+            newPriorityTextField.setText(newPriority != null ? newPriority : "");
+        }
+    }
+
+    /**
+     * Sets the dependent priority in the text field (backward compatibility).
+     *
+     * @param dependentPriority The dependent priority to set
+     */
+    public void setDependentPriority(String dependentPriority) {
+        // For backward compatibility, set conditional priority
+        setConditionalPriority(dependentPriority);
     }
 }
