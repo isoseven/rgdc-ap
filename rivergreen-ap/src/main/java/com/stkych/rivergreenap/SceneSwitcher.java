@@ -32,7 +32,7 @@ public final class SceneSwitcher {
     }
 
     public Parent loadFXML(String fxmlFile) throws IOException {
-         String resourcePath = FXML_PATH + fxmlFile + ".fxml";
+        String resourcePath = FXML_PATH + fxmlFile + ".fxml";
         FXMLLoader fxmlLoader = new FXMLLoader(SceneSwitcher.class.getResource(resourcePath));
         if (fxmlLoader.getLocation() == null) {
             throw new IOException("Cannot find FXML file: " + resourcePath);
