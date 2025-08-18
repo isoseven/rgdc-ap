@@ -149,7 +149,7 @@ public class DentalCodeUtil {
 
     /**
      * Compresses a list of dental codes into a compact representation using ranges, per prefix.
-     * Example: [D3000, D3001, D3002] -> "D3000-3002"; [N2300, N2301] -> "N2300-2301".
+     * Example: [D3000, D3001, D3002] -> "D3000-D3002"; [N2300, N2301] -> "N2300-N2301".
      * Uses semicolons as delimiters between ranges and preserves the code letter (D/N).
      *
      * @param codes The list of dental codes to compress
@@ -189,7 +189,7 @@ public class DentalCodeUtil {
                     if (start == prev) {
                         out.append(String.format("%c%04d", letter, start));
                     } else {
-                        out.append(String.format("%c%04d-%04d", letter, start, prev));
+                        out.append(String.format("%c%04d-%c%04d", letter, start, letter, prev));
                     }
                     start = cur;
                 }
@@ -200,7 +200,7 @@ public class DentalCodeUtil {
             if (start == prev) {
                 out.append(String.format("%c%04d", letter, start));
             } else {
-                out.append(String.format("%c%04d-%04d", letter, start, prev));
+                out.append(String.format("%c%04d-%c%04d", letter, start, letter, prev));
             }
         }
         return out.toString();

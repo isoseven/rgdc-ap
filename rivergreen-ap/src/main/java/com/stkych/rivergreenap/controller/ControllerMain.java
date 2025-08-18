@@ -789,16 +789,20 @@ public class ControllerMain extends Controller {
 
                     // Get procedure code if present
                     if (parts.length > 3 && !parts[3].trim().isEmpty()) {
-                        // Add 'D' prefix if not present
                         procedureCode = parts[3].trim();
-                        if (!procedureCode.startsWith("D")) {
-                            procedureCode = "D" + procedureCode;
+                        if (!procedureCode.isEmpty()) {
+                            char first = Character.toUpperCase(procedureCode.charAt(0));
+                            if (first != 'D' && first != 'N') {
+                                procedureCode = "D" + procedureCode;
+                            }
                         }
                     }
 
                     // Handle old format files (priority,procedureCode,teethNumbers,diagnosis)
                     // Check if we have a valid procedure code in the second position
-                    if (diagnosis.startsWith("D") && (procedureCode.isEmpty() || !procedureCode.startsWith("D"))) {
+                    if ((diagnosis.startsWith("D") || diagnosis.startsWith("N")) &&
+                            (procedureCode.isEmpty() ||
+                             !(procedureCode.startsWith("D") || procedureCode.startsWith("N")))) {
                         // This is likely the old format
                         procedureCode = diagnosis;
                         diagnosis = parts.length > 3 ? parts[3].trim() : "";

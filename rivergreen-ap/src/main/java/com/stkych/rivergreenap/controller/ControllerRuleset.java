@@ -4,6 +4,7 @@ import com.stkych.rivergreenap.RiverGreenDB;
 import com.stkych.rivergreenap.SceneSwitcher;
 import com.stkych.rivergreenap.controller.cells.RulesetItemCellFactory;
 import com.stkych.rivergreenap.model.RulesetItem;
+import com.stkych.rivergreenap.util.DentalCodeUtil;
 import com.stkych.rivergreenap.util.FileUtils;
 import com.stkych.rivergreenap.util.TeethNotationUtil;
 import javafx.collections.FXCollections;
@@ -846,10 +847,13 @@ public class ControllerRuleset implements Initializable {
                             String code = codes[i].trim();
                             System.out.println("[DEBUG_LOG] Processing code #" + (i+1) + ": '" + code + "'");
 
-                            // Add 'D' prefix if not present
-                            if (!code.startsWith("D")) {
-                                code = "D" + code;
-                                System.out.println("[DEBUG_LOG] Added 'D' prefix: '" + code + "'");
+                            // Add letter prefix if missing (default to D)
+                            if (!code.isEmpty()) {
+                                char first = Character.toUpperCase(code.charAt(0));
+                                if (first != 'D' && first != 'N') {
+                                    code = "D" + code;
+                                    System.out.println("[DEBUG_LOG] Added default 'D' prefix: '" + code + "'");
+                                }
                             }
                             formattedCodes.append(code);
                             if (i < codes.length - 1) {
@@ -983,34 +987,14 @@ public class ControllerRuleset implements Initializable {
                 }
                 line.append(",");
 
-                // Add procedure codes (without 'D' prefix)
+                // Add procedure codes, preserving letter prefixes and compressing ranges
                 String procedureCodes = item.getProcedureCodes();
                 System.out.println("[DEBUG_LOG] Saving procedure codes to CSV for item #" + i + ": '" + procedureCodes + "'");
 
                 if (procedureCodes != null && !procedureCodes.isEmpty()) {
-                    // Process comma-separated procedure codes
-                    String[] codes = procedureCodes.split(",");
-                    System.out.println("[DEBUG_LOG] Split into " + codes.length + " codes for formatting");
-
-                    StringBuilder formattedCodes = new StringBuilder();
-                    for (int j = 0; j < codes.length; j++) {
-                        String code = codes[j].trim();
-                        System.out.println("[DEBUG_LOG] Processing code #" + (j+1) + ": '" + code + "'");
-
-                        // Remove 'D' prefix if present
-                        if (code.startsWith("D")) {
-                            code = code.substring(1);
-                            System.out.println("[DEBUG_LOG] Removed 'D' prefix: '" + code + "'");
-                        }
-                        formattedCodes.append(code);
-                        if (j < codes.length - 1) {
-                            formattedCodes.append(";");
-                        }
-                    }
-
-                    String result = formattedCodes.toString();
-                    System.out.println("[DEBUG_LOG] Formatted procedure codes for CSV: '" + result + "'");
-                    line.append(result);
+                    String compressed = DentalCodeUtil.compressDentalCodes(procedureCodes);
+                    System.out.println("[DEBUG_LOG] Compressed procedure codes for CSV: '" + compressed + "'");
+                    line.append(compressed);
                 }
                 line.append(",");
 
