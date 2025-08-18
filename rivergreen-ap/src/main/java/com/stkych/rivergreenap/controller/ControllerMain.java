@@ -1037,11 +1037,11 @@ public class ControllerMain extends Controller {
                                                     
                                                     System.out.println("[DEBUG_LOG] DEPENDENCY CHECK: Comparing other procedure - tooth: '" + otherTooth + "', code: '" + otherCode + "'");
                                                     
-                                                    // Check if this procedure matches the conditional rule criteria and has same tooth
-                                                    boolean codeMatchesConditional = conditionalCodes.isEmpty() || conditionalCodes.contains(otherCode);
+                                                    // Check if this procedure matches the conditional rule criteria and has the same tooth
+                                                    boolean codeMatchesConditional = !conditionalCodes.isEmpty() && conditionalCodes.contains(otherCode);
                                                     boolean toothMatchesConditional = conditionalTeeth.isEmpty() || conditionalTeeth.contains(otherTooth);
                                                     boolean sameToothAsCurrent = procedureTooth.equals(otherTooth);
-                                                    
+
                                                     if (codeMatchesConditional && toothMatchesConditional && sameToothAsCurrent) {
                                                         System.out.println("[DEBUG_LOG] DEPENDENCY CHECK: MATCH FOUND! Procedure with tooth " + otherTooth + " and code " + otherCode + " matches conditional rule criteria");
                                                         dependencyFound = true;
@@ -1113,9 +1113,9 @@ public class ControllerMain extends Controller {
                                                 System.out.println("[DEBUG_LOG] DEPENDENCY CHECK (no teeth): Comparing other procedure - tooth: '" + otherTooth + "', code: '" + otherCode + "'");
                                                 
                                                 // Check if this procedure matches the conditional rule criteria
-                                                boolean codeMatchesConditional = conditionalCodes.isEmpty() || conditionalCodes.contains(otherCode);
+                                                boolean codeMatchesConditional = !conditionalCodes.isEmpty() && conditionalCodes.contains(otherCode);
                                                 boolean toothMatchesConditional = conditionalTeeth.isEmpty() || conditionalTeeth.contains(otherTooth);
-                                                
+
                                                 if (codeMatchesConditional && toothMatchesConditional) {
                                                     System.out.println("[DEBUG_LOG] DEPENDENCY CHECK (no teeth): MATCH FOUND! Procedure with tooth " + otherTooth + " and code " + otherCode + " matches conditional rule criteria");
                                                     dependencyFound = true;
