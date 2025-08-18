@@ -691,9 +691,6 @@ public class ControllerRuleset implements Initializable {
                     String diagnosis = "";
                     String teethNumbers = "";
                     String procedureCode = "";
-                    boolean isDependent = false;
-                    String conditionalPriority = "";
-                    String newPriority = "";
 
                     // Get diagnosis if present
                     if (parts.length > 1 && !parts[1].trim().isEmpty()) {
@@ -723,16 +720,6 @@ public class ControllerRuleset implements Initializable {
                         teethNumbers = parts.length > 2 ? parts[2].trim() : "";
                     }
 
-                    if (parts.length > 4 && !parts[4].trim().isEmpty()) {
-                        isDependent = Boolean.parseBoolean(parts[4].trim());
-                    }
-                    if (parts.length > 5 && !parts[5].trim().isEmpty()) {
-                        conditionalPriority = parts[5].trim();
-                    }
-                    if (parts.length > 6 && !parts[6].trim().isEmpty()) {
-                        newPriority = parts[6].trim();
-                    }
-
                     // Always fetch description from the database
                     String description = "";
                     try {
@@ -744,8 +731,10 @@ public class ControllerRuleset implements Initializable {
                         LOGGER.log(Level.SEVERE, "Unexpected error", e);
                     }
 
-                    RulesetItem item = new RulesetItem(priority, procedureCode, description, teethNumbers, diagnosis,
-                            isDependent, conditionalPriority, newPriority);
+                    RulesetItem item = new RulesetItem(priority, procedureCode, description, teethNumbers);
+                    if (!diagnosis.isEmpty()) {
+                        item.setDiagnosis(diagnosis);
+                    }
                     items.add(item);
                 }
             }
@@ -809,19 +798,6 @@ public class ControllerRuleset implements Initializable {
                         procedureCode = procedureCode.substring(1);
                     }
                     line.append(procedureCode);
-                }
-
-                // Append conditional fields
-                line.append(",").append(item.isDependent());
-                line.append(",");
-                String conditionalPriority = item.getConditionalPriority();
-                if (conditionalPriority != null && !conditionalPriority.isEmpty()) {
-                    line.append(conditionalPriority);
-                }
-                line.append(",");
-                String newPriority = item.getNewPriority();
-                if (newPriority != null && !newPriority.isEmpty()) {
-                    line.append(newPriority);
                 }
 
                 writer.write(line.toString());

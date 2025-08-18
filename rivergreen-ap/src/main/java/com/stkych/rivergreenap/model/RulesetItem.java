@@ -1,7 +1,5 @@
 package com.stkych.rivergreenap.model;
 
-import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import java.util.Objects;
@@ -17,9 +15,6 @@ public class RulesetItem {
     private final StringProperty description;
     private final StringProperty teethNumbers;
     private final StringProperty diagnosis;
-    private final BooleanProperty dependent;
-    private final StringProperty conditionalPriority;
-    private final StringProperty newPriority;
 
     /**
      * Constructs a new RulesetItem with the specified values.
@@ -30,7 +25,11 @@ public class RulesetItem {
      * @param teethNumbers The teeth numbers as a comma-separated list
      */
     public RulesetItem(String priority, String procedureCode, String description, String teethNumbers) {
-        this(priority, procedureCode, description, teethNumbers, "", false, "", "");
+        this.priority = new SimpleStringProperty(priority);
+        this.procedureCode = new SimpleStringProperty(procedureCode);
+        this.description = new SimpleStringProperty(description);
+        this.teethNumbers = new SimpleStringProperty(teethNumbers);
+        this.diagnosis = new SimpleStringProperty("");
     }
 
     /**
@@ -64,31 +63,11 @@ public class RulesetItem {
      * @param diagnosis The diagnosis for the item
      */
     public RulesetItem(String priority, String procedureCode, String description, String teethNumbers, String diagnosis) {
-        this(priority, procedureCode, description, teethNumbers, diagnosis, false, "", "");
-    }
-
-    /**
-     * Constructs a new RulesetItem with all available values.
-     *
-     * @param priority            The priority of the item
-     * @param procedureCode       The procedure code
-     * @param description         The description of the procedure code
-     * @param teethNumbers        The teeth numbers as a comma-separated list
-     * @param diagnosis           The diagnosis for the item
-     * @param isDependent         Whether this rule is dependent on the existing priority
-     * @param conditionalPriority The priority that must be present for the rule to apply
-     * @param newPriority         The priority to set when the condition is met
-     */
-    public RulesetItem(String priority, String procedureCode, String description, String teethNumbers, String diagnosis,
-                       boolean isDependent, String conditionalPriority, String newPriority) {
         this.priority = new SimpleStringProperty(priority);
         this.procedureCode = new SimpleStringProperty(procedureCode);
         this.description = new SimpleStringProperty(description);
         this.teethNumbers = new SimpleStringProperty(teethNumbers);
         this.diagnosis = new SimpleStringProperty(diagnosis);
-        this.dependent = new SimpleBooleanProperty(isDependent);
-        this.conditionalPriority = new SimpleStringProperty(conditionalPriority);
-        this.newPriority = new SimpleStringProperty(newPriority);
     }
 
     // Priority property
@@ -156,45 +135,6 @@ public class RulesetItem {
         this.diagnosis.set(diagnosis);
     }
 
-    // Dependent property
-    public BooleanProperty dependentProperty() {
-        return dependent;
-    }
-
-    public boolean isDependent() {
-        return dependent.get();
-    }
-
-    public void setDependent(boolean isDependent) {
-        this.dependent.set(isDependent);
-    }
-
-    // Conditional priority property
-    public StringProperty conditionalPriorityProperty() {
-        return conditionalPriority;
-    }
-
-    public String getConditionalPriority() {
-        return conditionalPriority.get();
-    }
-
-    public void setConditionalPriority(String conditionalPriority) {
-        this.conditionalPriority.set(conditionalPriority);
-    }
-
-    // New priority property
-    public StringProperty newPriorityProperty() {
-        return newPriority;
-    }
-
-    public String getNewPriority() {
-        return newPriority.get();
-    }
-
-    public void setNewPriority(String newPriority) {
-        this.newPriority.set(newPriority);
-    }
-
     /**
      * Returns a string representation of this RulesetItem.
      *
@@ -208,9 +148,6 @@ public class RulesetItem {
                 ", description='" + getDescription() + '\'' +
                 ", teethNumbers='" + getTeethNumbers() + '\'' +
                 ", diagnosis='" + getDiagnosis() + '\'' +
-                ", isDependent='" + isDependent() + '\'' +
-                ", conditionalPriority='" + getConditionalPriority() + '\'' +
-                ", newPriority='" + getNewPriority() + '\'' +
                 '}';
     }
 
@@ -223,15 +160,11 @@ public class RulesetItem {
                 Objects.equals(getProcedureCode(), that.getProcedureCode()) &&
                 Objects.equals(getDescription(), that.getDescription()) &&
                 Objects.equals(getTeethNumbers(), that.getTeethNumbers()) &&
-                Objects.equals(getDiagnosis(), that.getDiagnosis()) &&
-                Objects.equals(isDependent(), that.isDependent()) &&
-                Objects.equals(getConditionalPriority(), that.getConditionalPriority()) &&
-                Objects.equals(getNewPriority(), that.getNewPriority());
+                Objects.equals(getDiagnosis(), that.getDiagnosis());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(getPriority(), getProcedureCode(), getDescription(), getTeethNumbers(), getDiagnosis(),
-                isDependent(), getConditionalPriority(), getNewPriority());
+        return Objects.hash(getPriority(), getProcedureCode(), getDescription(), getTeethNumbers(), getDiagnosis());
     }
 }

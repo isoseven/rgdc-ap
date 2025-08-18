@@ -649,9 +649,6 @@ public class ControllerMain extends Controller {
                     String diagnosis = "";
                     String teethNumbers = "";
                     String procedureCode = "";
-                    boolean isDependent = false;
-                    String conditionalPriority = "";
-                    String newPriority = "";
 
                     // Get diagnosis if present
                     if (parts.length > 1 && !parts[1].trim().isEmpty()) {
@@ -681,17 +678,6 @@ public class ControllerMain extends Controller {
                         teethNumbers = parts.length > 2 ? parts[2].trim() : "";
                     }
 
-                    // Get conditional fields if present
-                    if (parts.length > 4 && !parts[4].trim().isEmpty()) {
-                        isDependent = Boolean.parseBoolean(parts[4].trim());
-                    }
-                    if (parts.length > 5 && !parts[5].trim().isEmpty()) {
-                        conditionalPriority = parts[5].trim();
-                    }
-                    if (parts.length > 6 && !parts[6].trim().isEmpty()) {
-                        newPriority = parts[6].trim();
-                    }
-
                     // Always fetch description from the database
                     String description = "";
                     try {
@@ -703,8 +689,10 @@ public class ControllerMain extends Controller {
                         LOGGER.log(Level.WARNING, "Error getting procedure description", e);
                     }
 
-                    RulesetItem item = new RulesetItem(priority, procedureCode, description, teethNumbers, diagnosis,
-                            isDependent, conditionalPriority, newPriority);
+                    RulesetItem item = new RulesetItem(priority, procedureCode, description, teethNumbers);
+                    if (!diagnosis.isEmpty()) {
+                        item.setDiagnosis(diagnosis);
+                    }
                     items.add(item);
                 }
             }
@@ -781,9 +769,6 @@ public class ControllerMain extends Controller {
             String procedureCode = item.getProcedureCode();
             String priority = item.getPriority();
             String diagnosis = item.getDiagnosis();
-            boolean isDependent = item.isDependent();
-            String conditionalPriority = item.getConditionalPriority();
-            String newPriority = item.getNewPriority();
 
             // Only use diagnosis if it's explicitly specified in the ruleset
             // Don't use description as fallback
@@ -809,48 +794,26 @@ public class ControllerMain extends Controller {
                     if (!ruleTeeth.isEmpty()) {
                         String procedureTooth = procedure.getToothNumber();
                         if (procedureTooth != null && !procedureTooth.isEmpty() && ruleTeeth.contains(procedureTooth)) {
-                            boolean shouldApply = true;
-                            if (isDependent) {
-                                String currentPriority = procedure.getPriority();
-                                if (conditionalPriority != null && !conditionalPriority.isEmpty() &&
-                                        !conditionalPriority.equals(currentPriority)) {
-                                    shouldApply = false;
-                                }
-                            }
+                            // Update priority and diagnosis if both procedure code and tooth match
+                            procedure.setPriority(priority);
 
-                            if (shouldApply) {
-                                String targetPriority = isDependent && newPriority != null && !newPriority.isEmpty()
-                                        ? newPriority : priority;
-                                procedure.setPriority(targetPriority);
-
-                                if (diagnosis != null && !diagnosis.isEmpty()) {
-                                    procedure.setDiagnosis(diagnosis);
-                                }
-
-                                appliedCount++;
-                            }
-                        }
-                    } else {
-                        boolean shouldApply = true;
-                        if (isDependent) {
-                            String currentPriority = procedure.getPriority();
-                            if (conditionalPriority != null && !conditionalPriority.isEmpty() &&
-                                    !conditionalPriority.equals(currentPriority)) {
-                                shouldApply = false;
-                            }
-                        }
-
-                        if (shouldApply) {
-                            String targetPriority = isDependent && newPriority != null && !newPriority.isEmpty()
-                                    ? newPriority : priority;
-                            procedure.setPriority(targetPriority);
-
+                            // Use the diagnosis property
                             if (diagnosis != null && !diagnosis.isEmpty()) {
                                 procedure.setDiagnosis(diagnosis);
                             }
 
                             appliedCount++;
                         }
+                    } else {
+                        // If the rule doesn't specify teeth, update all procedures with matching code
+                        procedure.setPriority(priority);
+
+                        // Also update diagnosis even if no teeth are specified
+                        if (diagnosis != null && !diagnosis.isEmpty()) {
+                            procedure.setDiagnosis(diagnosis);
+                        }
+
+                        appliedCount++;
                     }
                 }
             }
