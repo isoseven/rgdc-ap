@@ -767,29 +767,45 @@ public class ControllerMain extends Controller {
                 // Debug: Print the entire CSV line
                 System.out.println("[DEBUG_LOG] CSV Loading - Entire line: " + line);
 
-                // Split by comma
-                String[] parts = line.split(",");
+                // Handle quoted fields (for description)
+                List<String> parts = new ArrayList<>();
+                StringBuilder sb = new StringBuilder();
+                boolean inQuotes = false;
 
-                if (parts.length >= 2) {
-                    // New format: priority,diagnosis,teeth,codes
-                    String priority = parts[0].trim();
+                for (int i = 0; i < line.length(); i++) {
+                    char c = line.charAt(i);
+
+                    if (c == '"') {
+                        inQuotes = !inQuotes;
+                        if (i + 1 < line.length() && line.charAt(i + 1) == '"') {
+                            sb.append('"');
+                            i++;
+                        }
+                    } else if (c == ',' && !inQuotes) {
+                        parts.add(sb.toString());
+                        sb.setLength(0);
+                    } else {
+                        sb.append(c);
+                    }
+                }
+                parts.add(sb.toString());
+
+                if (parts.size() >= 2) {
+                    // New format: priority,diagnosis,teeth,codes,description,dependent,conditionalPriority,newPriority
+                    String priority = parts.get(0).trim();
                     String diagnosis = "";
                     String teethNumbers = "";
                     String procedureCode = "";
+                    String description = "";
 
-                    // Get diagnosis if present
-                    if (parts.length > 1 && !parts[1].trim().isEmpty()) {
-                        diagnosis = parts[1].trim();
+                    if (parts.size() > 1 && !parts.get(1).trim().isEmpty()) {
+                        diagnosis = parts.get(1).trim();
                     }
-
-                    // Get teeth numbers if present
-                    if (parts.length > 2 && !parts[2].trim().isEmpty()) {
-                        teethNumbers = parts[2].trim();
+                    if (parts.size() > 2 && !parts.get(2).trim().isEmpty()) {
+                        teethNumbers = parts.get(2).trim();
                     }
-
-                    // Get procedure code if present
-                    if (parts.length > 3 && !parts[3].trim().isEmpty()) {
-                        procedureCode = parts[3].trim();
+                    if (parts.size() > 3 && !parts.get(3).trim().isEmpty()) {
+                        procedureCode = parts.get(3).trim();
                         if (!procedureCode.isEmpty()) {
                             char first = Character.toUpperCase(procedureCode.charAt(0));
                             if (first != 'D' && first != 'N') {
@@ -797,33 +813,52 @@ public class ControllerMain extends Controller {
                             }
                         }
                     }
+                    if (parts.size() > 4 && !parts.get(4).trim().isEmpty()) {
+                        description = parts.get(4).trim();
+                    }
+
+                    boolean dependent = false;
+                    if (parts.size() > 5 && !parts.get(5).trim().isEmpty()) {
+                        dependent = Boolean.parseBoolean(parts.get(5).trim());
+                    }
+
+                    String conditionalPriority = "";
+                    if (parts.size() > 6 && !parts.get(6).trim().isEmpty()) {
+                        conditionalPriority = parts.get(6).trim();
+                    }
+
+                    String newPriority = "";
+                    if (parts.size() > 7 && !parts.get(7).trim().isEmpty()) {
+                        newPriority = parts.get(7).trim();
+                    }
 
                     // Handle old format files (priority,procedureCode,teethNumbers,diagnosis)
-                    // Check if we have a valid procedure code in the second position
                     if ((diagnosis.startsWith("D") || diagnosis.startsWith("N")) &&
                             (procedureCode.isEmpty() ||
                              !(procedureCode.startsWith("D") || procedureCode.startsWith("N")))) {
                         // This is likely the old format
                         procedureCode = diagnosis;
-                        diagnosis = parts.length > 3 ? parts[3].trim() : "";
-                        teethNumbers = parts.length > 2 ? parts[2].trim() : "";
+                        diagnosis = parts.size() > 3 ? parts.get(3).trim() : "";
+                        teethNumbers = parts.size() > 2 ? parts.get(2).trim() : "";
                     }
 
-                    // Always fetch description from the database
-                    String description = "";
-                    try {
-                        if (!procedureCode.isEmpty()) {
-                            description = RiverGreenDB.getProcedureCodeDescription(procedureCode);
+                    if (description.isEmpty()) {
+                        try {
+                            if (!procedureCode.isEmpty()) {
+                                description = RiverGreenDB.getProcedureCodeDescription(procedureCode);
+                            }
+                        } catch (SQLException e) {
+                            LOGGER.log(Level.WARNING, "Error getting procedure description", e);
                         }
-                    } catch (SQLException e) {
-                        // If there's an error, use an empty description
-                        LOGGER.log(Level.WARNING, "Error getting procedure description", e);
                     }
 
                     RulesetItem item = new RulesetItem(priority, procedureCode, description, teethNumbers);
                     if (!diagnosis.isEmpty()) {
                         item.setDiagnosis(diagnosis);
                     }
+                    item.setDependent(dependent);
+                    item.setConditionalPriority(conditionalPriority);
+                    item.setNewPriority(newPriority);
                     items.add(item);
                 }
             }
@@ -1002,11 +1037,11 @@ public class ControllerMain extends Controller {
                                                     
                                                     System.out.println("[DEBUG_LOG] DEPENDENCY CHECK: Comparing other procedure - tooth: '" + otherTooth + "', code: '" + otherCode + "'");
                                                     
-                                                    // Check if this procedure matches the conditional rule criteria and has same tooth
-                                                    boolean codeMatchesConditional = conditionalCodes.isEmpty() || conditionalCodes.contains(otherCode);
+                                                    // Check if this procedure matches the conditional rule criteria and has the same tooth
+                                                    boolean codeMatchesConditional = !conditionalCodes.isEmpty() && conditionalCodes.contains(otherCode);
                                                     boolean toothMatchesConditional = conditionalTeeth.isEmpty() || conditionalTeeth.contains(otherTooth);
                                                     boolean sameToothAsCurrent = procedureTooth.equals(otherTooth);
-                                                    
+
                                                     if (codeMatchesConditional && toothMatchesConditional && sameToothAsCurrent) {
                                                         System.out.println("[DEBUG_LOG] DEPENDENCY CHECK: MATCH FOUND! Procedure with tooth " + otherTooth + " and code " + otherCode + " matches conditional rule criteria");
                                                         dependencyFound = true;
@@ -1048,11 +1083,12 @@ public class ControllerMain extends Controller {
                                 System.out.println("[DEBUG_LOG] DEPENDENCY CHECK (no teeth) - Values: isDependent=" + isDependent + ", conditionalPriority='" + conditionalPriority + "', newPriority='" + newPriority + "'");
                                 System.out.println("[DEBUG_LOG] DEPENDENCY CHECK (no teeth) - Condition parts: isDependent=" + isDependent + ", conditionalPriority!=null=" + (conditionalPriority != null) + ", !conditionalPriority.isEmpty()=" + (conditionalPriority != null && !conditionalPriority.isEmpty()));
                                 System.out.println("[DEBUG_LOG] DEPENDENCY CHECK (no teeth) - Full condition result: " + (isDependent && conditionalPriority != null && !conditionalPriority.isEmpty()));
+                                String procedureTooth = procedure.getToothNumber();
                                 if (isDependent && conditionalPriority != null && !conditionalPriority.isEmpty()) {
                                     System.out.println("[DEBUG_LOG] DEPENDENCY CHECK (no teeth) - Step 2: Rule is dependent and conditional priority is specified: '" + conditionalPriority + "' on any tooth");
                                     // Look for procedures in treatment plan that would get the conditional priority
                                     boolean dependencyFound = false;
-                                    
+
                                     // Find the rule that assigns the conditional priority
                                     RulesetItem conditionalRule = null;
                                     for (int r = 1; r < ruleset.size(); r++) {
@@ -1062,26 +1098,27 @@ public class ControllerMain extends Controller {
                                             break;
                                         }
                                     }
-                                    
+
                                     if (conditionalRule != null) {
                                         System.out.println("[DEBUG_LOG] DEPENDENCY CHECK (no teeth): Found conditional rule for priority '" + conditionalPriority + "'");
                                         List<String> conditionalCodes = parseProcedureCodes(conditionalRule.getProcedureCodes());
                                         List<String> conditionalTeeth = parseTeethNumbers(conditionalRule.getTeethNumbers());
-                                        
+
                                         // Check if any procedure matches the conditional rule criteria
                                         for (int k = 1; k < procedures.size(); k++) {
                                             if (k != j) { // Don't check the same procedure
                                                 TreatmentPlanProcedure otherProcedure = procedures.get(k);
                                                 String otherTooth = otherProcedure.getToothNumber();
                                                 String otherCode = otherProcedure.getProcedureCode();
-                                                
+
                                                 System.out.println("[DEBUG_LOG] DEPENDENCY CHECK (no teeth): Comparing other procedure - tooth: '" + otherTooth + "', code: '" + otherCode + "'");
-                                                
+
                                                 // Check if this procedure matches the conditional rule criteria
-                                                boolean codeMatchesConditional = conditionalCodes.isEmpty() || conditionalCodes.contains(otherCode);
+                                                boolean codeMatchesConditional = !conditionalCodes.isEmpty() && conditionalCodes.contains(otherCode);
                                                 boolean toothMatchesConditional = conditionalTeeth.isEmpty() || conditionalTeeth.contains(otherTooth);
-                                                
-                                                if (codeMatchesConditional && toothMatchesConditional) {
+                                                boolean sameToothAsCurrent = procedureTooth != null && procedureTooth.equals(otherTooth);
+
+                                                if (codeMatchesConditional && toothMatchesConditional && sameToothAsCurrent) {
                                                     System.out.println("[DEBUG_LOG] DEPENDENCY CHECK (no teeth): MATCH FOUND! Procedure with tooth " + otherTooth + " and code " + otherCode + " matches conditional rule criteria");
                                                     dependencyFound = true;
                                                     break;
@@ -1091,9 +1128,9 @@ public class ControllerMain extends Controller {
                                     } else {
                                         System.out.println("[DEBUG_LOG] DEPENDENCY CHECK (no teeth): Could not find rule for conditional priority '" + conditionalPriority + "'");
                                     }
-                                    
+
                                     System.out.println("[DEBUG_LOG] DEPENDENCY CHECK (no teeth): Final result - dependencyFound: " + dependencyFound);
-                                    
+
                                     if (dependencyFound) {
                                         // Replace priority with new priority
                                         System.out.println("[DEBUG_LOG] PRIORITY REPLACEMENT: Procedure " + procedureCode + " - replacing '" + priority + "' with '" + newPriority + "' (dependency found)");
