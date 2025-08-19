@@ -23,7 +23,6 @@ To get started, you can go into the AutoPriority application, go to File > Open 
 
 ## Instructions
 
-<tbd>
 
 
 > [!NOTE]
