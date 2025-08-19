@@ -19,7 +19,7 @@ These can be changed, and it will show up in the AutoPriority application automa
 
 <img width="477" height="365" alt="image" src="https://github.com/user-attachments/assets/aad5d11b-8fd1-4b34-a948-1e34a3d695f1" />
 
-To get started, you can go into the AutoPriority application, go to File > Open CSV Files and paste the rulesetT.csv inside. The demo ruleset will be applied.
+To get started, you can go into the AutoPriority application, go to File > Open CSV Files and paste the ruleset1.csv inside. The demo ruleset will be applied.
 
 ## Instructions
 
