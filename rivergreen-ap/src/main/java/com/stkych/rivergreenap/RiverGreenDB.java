@@ -19,23 +19,22 @@ import java.util.logging.Logger;
  */
 public class RiverGreenDB {
     private static final Logger LOGGER = Logger.getLogger(RiverGreenDB.class.getName());
-    private static final String DB_URL = "jdbc:mysql://localhost:3306/opendental?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
-    private static final String DB_USER = "root";
-    private static final String DB_PASSWORD = "test";
-
     /**
-     * Gets a connection to the MySQL database.
+     * Gets a connection to the MySQL database using the provided credentials.
      *
+     * @param dbUrl The JDBC URL of the database
+     * @param dbUser The database username
+     * @param dbPassword The database password
      * @return A Connection object
      * @throws SQLException If a database error occurs
      */
-    public static Connection getConnection() throws SQLException {
+    public static Connection getConnection(String dbUrl, String dbUser, String dbPassword) throws SQLException {
         try {
             // Explicitly load the MySQL JDBC driver
             Class.forName("com.mysql.cj.jdbc.Driver");
 
             // Attempt to establish connection
-            return DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+            return DriverManager.getConnection(dbUrl, dbUser, dbPassword);
         } catch (ClassNotFoundException e) {
             LOGGER.log(Level.SEVERE, "MySQL JDBC Driver not found", e);
             throw new SQLException("MySQL JDBC Driver not found", e);
@@ -46,13 +45,30 @@ public class RiverGreenDB {
     }
 
     /**
+     * Gets a connection to the MySQL database using default credentials.
+     *
+     * @return A Connection object
+     * @throws SQLException If a database error occurs
+     */
+    public static Connection getConnection() throws SQLException {
+        return getConnection(DatabaseConfig.DB_URL, DatabaseConfig.DB_USER, DatabaseConfig.DB_PASSWORD);
+    }
+
+    /**
      * Retrieves procedures for a patient's treatment plans.
      *
      * @param patientNumber The patient number
+     * @param dbUrl The JDBC URL of the database
+     * @param dbUser The database username
+     * @param dbPassword The database password
      * @return A list of TreatmentPlanProcedure objects
      * @throws SQLException If a database error occurs
      */
-    public static @NotNull List<TreatmentPlanProcedure> getProceduresForPatient(int patientNumber) throws SQLException {
+    public static @NotNull List<TreatmentPlanProcedure> getProceduresForPatient(
+            int patientNumber,
+            String dbUrl,
+            String dbUser,
+            String dbPassword) throws SQLException {
         // Create a list to hold the procedures for the patient
         List<TreatmentPlanProcedure> procedures = new ArrayList<>();
 
@@ -72,7 +88,7 @@ public class RiverGreenDB {
                 "(SELECT TreatPlanNum FROM treatplan WHERE PatNum = ? AND TPStatus = 1))";
 
         // connection
-        try (Connection conn = getConnection();
+        try (Connection conn = getConnection(dbUrl, dbUser, dbPassword);
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, patientNumber);
             try (ResultSet rs = stmt.executeQuery()) {
@@ -127,6 +143,13 @@ public class RiverGreenDB {
     }
 
     /**
+     * Retrieves procedures for a patient's treatment plans using default database credentials.
+     */
+    public static @NotNull List<TreatmentPlanProcedure> getProceduresForPatient(int patientNumber) throws SQLException {
+        return getProceduresForPatient(patientNumber, DatabaseConfig.DB_URL, DatabaseConfig.DB_USER, DatabaseConfig.DB_PASSWORD);
+    }
+
+    /**
      * Retrieves procedures for a patient's treatment plans and returns them as an ObservableList.
      * This is a convenience method for JavaFX UI components.
      *
@@ -134,9 +157,17 @@ public class RiverGreenDB {
      * @return An ObservableList of TreatmentPlanProcedure objects
      * @throws SQLException If a database error occurs
      */
-    public static ObservableList<TreatmentPlanProcedure> getProceduresForPatientObservable(int patientNumber) throws SQLException {
-        List<TreatmentPlanProcedure> procedures = getProceduresForPatient(patientNumber);
+    public static ObservableList<TreatmentPlanProcedure> getProceduresForPatientObservable(
+            int patientNumber,
+            String dbUrl,
+            String dbUser,
+            String dbPassword) throws SQLException {
+        List<TreatmentPlanProcedure> procedures = getProceduresForPatient(patientNumber, dbUrl, dbUser, dbPassword);
         return FXCollections.observableArrayList(procedures);
+    }
+
+    public static ObservableList<TreatmentPlanProcedure> getProceduresForPatientObservable(int patientNumber) throws SQLException {
+        return getProceduresForPatientObservable(patientNumber, DatabaseConfig.DB_URL, DatabaseConfig.DB_USER, DatabaseConfig.DB_PASSWORD);
     }
 
     /**
@@ -146,7 +177,7 @@ public class RiverGreenDB {
      * @return A list of priority names
      * @throws SQLException If a database error occurs
      */
-    public static @NotNull List<String> getAllPriorities() throws SQLException {
+    public static @NotNull List<String> getAllPriorities(String dbUrl, String dbUser, String dbPassword) throws SQLException {
         // Create a list to hold the priorities
         List<String> priorities = new ArrayList<>();
 
@@ -157,7 +188,7 @@ public class RiverGreenDB {
         String sql = "SELECT * FROM definition WHERE Category = 20 ORDER BY DefNum";
 
         // Execute the query
-        try (Connection conn = getConnection();
+        try (Connection conn = getConnection(dbUrl, dbUser, dbPassword);
              PreparedStatement stmt = conn.prepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
 
@@ -172,6 +203,10 @@ public class RiverGreenDB {
         return priorities;
     }
 
+    public static @NotNull List<String> getAllPriorities() throws SQLException {
+        return getAllPriorities(DatabaseConfig.DB_URL, DatabaseConfig.DB_USER, DatabaseConfig.DB_PASSWORD);
+    }
+
     /**
      * Retrieves all priorities from the database and returns them as an ObservableList.
      * This is a convenience method for JavaFX UI components.
@@ -179,12 +214,19 @@ public class RiverGreenDB {
      * @return An ObservableList of priority names
      * @throws SQLException If a database error occurs
      */
-    public static ObservableList<String> getAllPrioritiesObservable() throws SQLException {
-        List<String> priorities = getAllPriorities();
+    public static ObservableList<String> getAllPrioritiesObservable(
+            String dbUrl,
+            String dbUser,
+            String dbPassword) throws SQLException {
+        List<String> priorities = getAllPriorities(dbUrl, dbUser, dbPassword);
         ObservableList<String> observablePriorities = FXCollections.observableArrayList();
         observablePriorities.add("None");
         observablePriorities.addAll(priorities);
         return observablePriorities;
+    }
+
+    public static ObservableList<String> getAllPrioritiesObservable() throws SQLException {
+        return getAllPrioritiesObservable(DatabaseConfig.DB_URL, DatabaseConfig.DB_USER, DatabaseConfig.DB_PASSWORD);
     }
 
     /**
@@ -194,7 +236,7 @@ public class RiverGreenDB {
      * @return A list of diagnosis names
      * @throws SQLException If a database error occurs
      */
-    public static @NotNull List<String> getAllDiagnoses() throws SQLException {
+    public static @NotNull List<String> getAllDiagnoses(String dbUrl, String dbUser, String dbPassword) throws SQLException {
         // Create a list to hold the diagnoses
         List<String> diagnoses = new ArrayList<>();
 
@@ -204,7 +246,7 @@ public class RiverGreenDB {
         String sql = "SELECT * FROM definition WHERE Category = 16";
 
         // Execute the query
-        try (Connection conn = getConnection();
+        try (Connection conn = getConnection(dbUrl, dbUser, dbPassword);
              PreparedStatement stmt = conn.prepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
 
@@ -219,6 +261,10 @@ public class RiverGreenDB {
         return diagnoses;
     }
 
+    public static @NotNull List<String> getAllDiagnoses() throws SQLException {
+        return getAllDiagnoses(DatabaseConfig.DB_URL, DatabaseConfig.DB_USER, DatabaseConfig.DB_PASSWORD);
+    }
+
     /**
      * Retrieves all diagnoses from the database and returns them as an ObservableList.
      * This is a convenience method for JavaFX UI components.
@@ -226,12 +272,19 @@ public class RiverGreenDB {
      * @return An ObservableList of diagnosis names
      * @throws SQLException If a database error occurs
      */
-    public static ObservableList<String> getAllDiagnosesObservable() throws SQLException {
-        List<String> diagnoses = getAllDiagnoses();
+    public static ObservableList<String> getAllDiagnosesObservable(
+            String dbUrl,
+            String dbUser,
+            String dbPassword) throws SQLException {
+        List<String> diagnoses = getAllDiagnoses(dbUrl, dbUser, dbPassword);
         ObservableList<String> observableDiagnoses = FXCollections.observableArrayList();
         observableDiagnoses.add("None");
         observableDiagnoses.addAll(diagnoses);
         return observableDiagnoses;
+    }
+
+    public static ObservableList<String> getAllDiagnosesObservable() throws SQLException {
+        return getAllDiagnosesObservable(DatabaseConfig.DB_URL, DatabaseConfig.DB_USER, DatabaseConfig.DB_PASSWORD);
     }
 
     /**

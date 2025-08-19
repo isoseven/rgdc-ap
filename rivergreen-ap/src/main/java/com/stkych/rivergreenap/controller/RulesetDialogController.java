@@ -1,6 +1,7 @@
 package com.stkych.rivergreenap.controller;
 
 import com.stkych.rivergreenap.RiverGreenDB;
+import com.stkych.rivergreenap.DatabaseConfig;
 import com.stkych.rivergreenap.util.DentalCodeUtil;
 import com.stkych.rivergreenap.util.TeethNotationUtil;
 import javafx.collections.FXCollections;
@@ -69,7 +70,10 @@ public class RulesetDialogController implements Initializable {
     public void initialize(URL location, ResourceBundle resources) {
         // Initialize priority combo box
         try {
-            ObservableList<String> priorities = RiverGreenDB.getAllPrioritiesObservable();
+            ObservableList<String> priorities = RiverGreenDB.getAllPrioritiesObservable(
+                DatabaseConfig.DB_URL,
+                DatabaseConfig.DB_USER,
+                DatabaseConfig.DB_PASSWORD);
             priorityComboBox.setItems(priorities);
         } catch (SQLException e) {
             showErrorAlert("Error loading priorities", e.getMessage());
@@ -77,7 +81,10 @@ public class RulesetDialogController implements Initializable {
 
         // Initialize diagnosis combo box
         try {
-            ObservableList<String> diagnoses = RiverGreenDB.getAllDiagnosesObservable();
+            ObservableList<String> diagnoses = RiverGreenDB.getAllDiagnosesObservable(
+                DatabaseConfig.DB_URL,
+                DatabaseConfig.DB_USER,
+                DatabaseConfig.DB_PASSWORD);
             diagnosisComboBox.setItems(diagnoses);
         } catch (SQLException e) {
             showErrorAlert("Error loading diagnoses", e.getMessage());
