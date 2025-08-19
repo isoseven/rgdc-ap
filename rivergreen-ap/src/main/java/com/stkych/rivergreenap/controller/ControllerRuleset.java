@@ -1,6 +1,7 @@
 package com.stkych.rivergreenap.controller;
 
 import com.stkych.rivergreenap.RiverGreenDB;
+import com.stkych.rivergreenap.DatabaseConfig;
 import com.stkych.rivergreenap.SceneSwitcher;
 import com.stkych.rivergreenap.controller.cells.RulesetItemCellFactory;
 import com.stkych.rivergreenap.model.RulesetItem;
@@ -1081,7 +1082,10 @@ public class ControllerRuleset implements Initializable {
         ObservableList<String> priorities;
         try {
             // Get priorities from the database
-            priorities = RiverGreenDB.getAllPrioritiesObservable();
+            priorities = RiverGreenDB.getAllPrioritiesObservable(
+                DatabaseConfig.DB_URL,
+                DatabaseConfig.DB_USER,
+                DatabaseConfig.DB_PASSWORD);
             // Sort the priorities
             sortPriorities(priorities);
         } catch (SQLException e) {

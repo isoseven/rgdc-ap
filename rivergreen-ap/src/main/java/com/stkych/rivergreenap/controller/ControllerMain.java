@@ -1,6 +1,7 @@
 package com.stkych.rivergreenap.controller;
 
 import com.stkych.rivergreenap.RiverGreenDB;
+import com.stkych.rivergreenap.DatabaseConfig;
 import com.stkych.rivergreenap.SceneSwitcher;
 import com.stkych.rivergreenap.controller.cells.TreatmentPlanProcedureCellFactory;
 import com.stkych.rivergreenap.model.RulesetItem;
@@ -191,7 +192,11 @@ public class ControllerMain extends Controller {
      */
     private void loadProceduresForPatient(int patientNumber) throws SQLException {
         // Get procedures for the patient using the RiverGreenDB class
-        ObservableList<TreatmentPlanProcedure> loadedProcedures = RiverGreenDB.getProceduresForPatientObservable(patientNumber);
+        ObservableList<TreatmentPlanProcedure> loadedProcedures = RiverGreenDB.getProceduresForPatientObservable(
+            patientNumber,
+            DatabaseConfig.DB_URL,
+            DatabaseConfig.DB_USER,
+            DatabaseConfig.DB_PASSWORD);
 
         // Create a new list with the header item at the beginning
         ObservableList<TreatmentPlanProcedure> proceduresWithHeader = FXCollections.observableArrayList();
@@ -233,7 +238,10 @@ public class ControllerMain extends Controller {
      */
     private void setupPriorityListView() {
         try {
-            ObservableList<String> priorities = RiverGreenDB.getAllPrioritiesObservable();
+            ObservableList<String> priorities = RiverGreenDB.getAllPrioritiesObservable(
+                DatabaseConfig.DB_URL,
+                DatabaseConfig.DB_USER,
+                DatabaseConfig.DB_PASSWORD);
             sortPriorities(priorities);
             priorityListView.setItems(priorities);
         } catch (SQLException e) {
@@ -376,7 +384,10 @@ public class ControllerMain extends Controller {
      */
     private void setupDiagnosisListView() {
         try {
-            ObservableList<String> diagnoses = RiverGreenDB.getAllDiagnosesObservable();
+            ObservableList<String> diagnoses = RiverGreenDB.getAllDiagnosesObservable(
+                DatabaseConfig.DB_URL,
+                DatabaseConfig.DB_USER,
+                DatabaseConfig.DB_PASSWORD);
             diagnosisListView.setItems(diagnoses);
         } catch (SQLException e) {
             handleError(e);
