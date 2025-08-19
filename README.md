@@ -16,6 +16,7 @@ Clicking the AutoPriority button on the top bar should now open the application.
 
 Make sure to also set up these treatment plan priority definitions in Setup > Definitions > Treat' Plan Priorities.
 These can be changed, and it will show up in the AutoPriority application automatically.
+
 <img width="477" height="365" alt="image" src="https://github.com/user-attachments/assets/aad5d11b-8fd1-4b34-a948-1e34a3d695f1" />
 
 ## Instructions
