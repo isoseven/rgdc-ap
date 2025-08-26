@@ -4,8 +4,8 @@ This program aims to automate certain inputs (namely, priority and diagnosis) of
 
 
 ## Setup
-To use the attached binary, first download the [Java runtime environment](https://www.java.com/en/download/manual.jsp). This will allow you to run Java files. Then download the .jar file down below.
-You can save the file anywhere, but remember where it is and copy the path.
+To use the attached binary, first download the [Java Development Kit](https://www.oracle.com/java/technologies/downloads/#jdk24-windows). This will allow you to run Java files. Then download the .jar file down below.
+You can save the file anywhere, but remember where it is and note the path.
 
 In OpenDental, go to Setup > Program Links > Add
 
@@ -22,7 +22,13 @@ These can be changed, and it will show up in the AutoPriority application automa
 To get started, you can go into the AutoPriority application, go to File > Open CSV Files and paste the ruleset1.csv inside. The demo ruleset will be applied.
 
 ## Instructions
-
+placeholder photos here, instructions soon
+<img width="1102" height="831" alt="image" src="https://github.com/user-attachments/assets/c4c21190-8b2e-41e4-8f64-5bd51c48b322" />
+<img width="253" height="155" alt="image" src="https://github.com/user-attachments/assets/43f7eadf-0c58-4827-894e-4807d067b9fa" />
+<img width="1097" height="827" alt="image" src="https://github.com/user-attachments/assets/0fba8d32-22b0-477c-ace2-ce6ab3de1178" />
+<img width="1098" height="828" alt="image" src="https://github.com/user-attachments/assets/6ff676e4-1fdc-4d95-b676-364488ccb2c9" />
+<img width="593" height="423" alt="image" src="https://github.com/user-attachments/assets/52ac2293-45dc-4ff0-a499-4d7ea36aaf81" />
+<img width="1095" height="830" alt="image" src="https://github.com/user-attachments/assets/b2e23610-34ce-498d-b395-e214aec23928" />
 
 
 > [!NOTE]
