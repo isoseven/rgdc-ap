@@ -55,7 +55,6 @@ public class RiverGreenApplication extends Application {
      * @param args Command line arguments. If provided, the first argument should be the patient number.
      */
     public static void main(String[] args) {
-        // Check if a patient number was provided as a command line argument
         if (args.length > 0) {
             try {
                 patientNumber = Integer.parseInt(args[0]);
@@ -63,6 +62,12 @@ public class RiverGreenApplication extends Application {
                 LOGGER.log(Level.WARNING, "Invalid patient number format. Using default: " + patientNumber);
             }
         }
+
+        String url = args.length > 1 ? args[1] : null;
+        String user = args.length > 2 ? args[2] : null;
+        String password = args.length > 3 ? args[3] : null;
+        DatabaseConfig.setConnection(url, user, password);
+
         launch(args);
     }
 }
