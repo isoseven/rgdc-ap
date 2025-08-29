@@ -63,10 +63,7 @@ public class RiverGreenApplication extends Application {
             }
         }
 
-        String url = args.length > 1 ? args[1] : null;
-        String user = args.length > 2 ? args[2] : null;
-        String password = args.length > 3 ? args[3] : null;
-        DatabaseConfig.setConnection(url, user, password);
+        // Database configuration is now static - no need to set connection parameters
 
         launch(args);
     }
