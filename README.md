@@ -9,6 +9,8 @@ You can save the file anywhere, but remember where it is and note the path.
 
 In OpenDental, go to Setup > Program Links > Add
 
+\[PatNum] jdbc:mysql://localhost:3306/opendental?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC root password -jar
+
 Copy the info here, and replace the path of file to open with the path of the downloaded file.
 <img width="771" height="591" alt="image" src="https://github.com/user-attachments/assets/54afe525-8347-4763-bb63-3b78b724eaaa" />
 
